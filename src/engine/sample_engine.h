@@ -2,6 +2,11 @@
 
 #include "engine.h"
 
+#include <vector>
+
+class Entity;
+class EntityMesh;
+
 class SampleEngine : public Engine {
 
     static std::vector<Entity*> entities;
