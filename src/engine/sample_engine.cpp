@@ -48,9 +48,14 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
         entities.push_back(grid);
     }
 
-    MeshInstance3D* cube = parse_mesh("data/meshes/cube/cube.obj");
+ /*   MeshInstance3D* cube = parse_mesh("data/meshes/cube/cube.obj");
     cube->scale(glm::vec3(0.1f));
-    entities.push_back(cube);
+    entities.push_back(cube);*/
+
+    parse_scene("data/meshes/Dancing.glb", entities);
+    Node3D* eva = entities[entities.size() - 1];
+    eva->scale(glm::vec3(10.f));
+    //entities.push_back(eva);
 
 	return error;
 }
