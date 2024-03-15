@@ -361,7 +361,7 @@ void SampleRenderer::init_depth_buffers()
             WGPUTextureFormat_Depth32Float,
             { webgpu_context.render_width, webgpu_context.render_height, 1 },
             WGPUTextureUsage_RenderAttachment,
-            1, nullptr);
+            1, 1, nullptr);
 
         if (eye_depth_texture_view[i]) {
             wgpuTextureViewRelease(eye_depth_texture_view[i]);
@@ -420,7 +420,7 @@ void SampleRenderer::init_mirror_pipeline()
         swapchain_bind_groups.push_back(webgpu_context.create_bind_group(uniforms, mirror_shader, 0));
     }
 
-    mirror_pipeline.create_render(mirror_shader, color_target, { .uses_depth_buffer = false });
+    mirror_pipeline.create_render(mirror_shader, color_target, { .depth_read = false });
 }
 
 #endif
@@ -463,7 +463,7 @@ void SampleRenderer::init_render_mesh_pipelines()
     color_target.blend = blend_state;
     color_target.writeMask = WGPUColorWriteMask_All;
 
-    Pipeline::register_render_pipeline(render_mesh_shader, color_target);
+    /*Pipeline::register_render_pipeline(render_mesh_shader, color_target);
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/mesh_texture.wgsl"), color_target);
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/mesh_texture_cube.wgsl"), color_target, { .cull_mode = WGPUCullMode_Front, .uses_depth_write = false });
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/mesh_grid.wgsl"), color_target);
@@ -473,7 +473,7 @@ void SampleRenderer::init_render_mesh_pipelines()
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/ui/ui_button.wgsl"), color_target);
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/ui/ui_slider.wgsl"), color_target);
     Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/ui/ui_color_picker.wgsl"), color_target);
-    Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/sdf_fonts.wgsl"), color_target);
+    Pipeline::register_render_pipeline(RendererStorage::get_shader("data/shaders/sdf_fonts.wgsl"), color_target);*/
 }
 
 void SampleRenderer::resize_window(int width, int height)

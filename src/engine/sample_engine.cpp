@@ -1,6 +1,7 @@
 #include "sample_engine.h"
-#include "framework/entities/entity_mesh.h"
-#include "framework/entities/entity_text.h"
+#include "framework/nodes/environment_3d.h"
+#include "framework/nodes/viewport_3d.h"
+#include "framework/nodes/node.h"
 #include "framework/input.h"
 #include "framework/scene/parse_scene.h"
 #include "graphics/sample_renderer.h"
@@ -12,9 +13,9 @@
 
 #include "spdlog/spdlog.h"
 
-EntityMesh* SampleEngine::skybox = nullptr;
-EntityMesh* SampleEngine::grid = nullptr;
-std::vector<Entity*> SampleEngine::entities;
+MeshInstance3D* SampleEngine::skybox = nullptr;
+MeshInstance3D* SampleEngine::grid = nullptr;
+std::vector<Node3D*> SampleEngine::entities;
 
 int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_glfw, bool use_mirror_screen)
 {
@@ -25,29 +26,29 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
     // Create skybox
 
     {
-        skybox = parse_mesh("data/meshes/cube.obj");
-        skybox->set_surface_material_shader(0, RendererStorage::get_shader("data/shaders/mesh_texture_cube.wgsl"));
-        skybox->set_surface_material_diffuse(0, Renderer::instance->get_irradiance_texture());
-        skybox->scale(glm::vec3(100.f));
-        skybox->set_surface_material_priority(0, 2);
+        skybox = new Environment3D();
+        entities.push_back(skybox);
     }
 
     // Create grid
     {
-        grid = new EntityMesh();
+        grid = new MeshInstance3D();
         grid->add_surface(RendererStorage::get_surface("quad"));
         grid->set_translation(glm::vec3(0.0f));
         grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        grid->scale(glm::vec3(3.f));
+        grid->scale(glm::vec3(10.f));
 
+        // NOTE: first set the transparency and all types BEFORE loading the shader
         Material grid_material;
-        grid_material.shader = RendererStorage::get_shader("data/shaders/mesh_grid.wgsl");
-        grid_material.flags |= MATERIAL_TRANSPARENT;
+        grid_material.transparency_type = ALPHA_BLEND;
+        grid_material.shader = RendererStorage::get_shader("data/shaders/mesh_grid.wgsl", grid_material);
 
         grid->set_surface_material_override(grid->get_surface(0), grid_material);
+
+        entities.push_back(grid);
     }
 
-    EntityMesh* cube = parse_mesh("data/meshes/cube/cube.obj");
+    MeshInstance3D* cube = parse_mesh("data/meshes/cube/cube.obj");
     cube->scale(glm::vec3(0.1f));
     entities.push_back(cube);
 
@@ -73,13 +74,9 @@ void SampleEngine::render()
 {
     render_gui();
 
-    skybox->render();
-
 	for (auto entity : entities) {
 		entity->render();
 	}
-
-    grid->render();
 
 	Engine::render();
 }
@@ -126,7 +123,7 @@ void SampleEngine::render_gui()
         {
             if (ImGui::TreeNodeEx("Root", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                std::vector<Entity*>::iterator it = entities.begin();
+                std::vector<Node3D*>::iterator it = entities.begin();
                 while (it != entities.end())
                 {
                     if (show_tree_recursive(*it)) {
@@ -148,11 +145,11 @@ void SampleEngine::render_gui()
     ImGui::End();
 }
 
-bool SampleEngine::show_tree_recursive(Entity* entity)
+bool SampleEngine::show_tree_recursive(Node* entity)
 {
-    std::vector<Entity*>& children = entity->get_children();
+    std::vector<Node*>& children = entity->get_children();
 
-    EntityMesh* entity_mesh = dynamic_cast<EntityMesh*>(entity);
+    MeshInstance3D* entity_mesh = dynamic_cast<MeshInstance3D*>(entity);
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
 
@@ -184,7 +181,7 @@ bool SampleEngine::show_tree_recursive(Entity* entity)
             }
         }
 
-        std::vector<Entity*>::iterator it = children.begin();
+        std::vector<Node*>::iterator it = children.begin();
 
         while (it != children.end())
         {

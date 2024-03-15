@@ -4,17 +4,18 @@
 
 #include <vector>
 
-class Entity;
-class EntityMesh;
+class Node;
+class Node3D;
+class MeshInstance3D;
 
 class SampleEngine : public Engine {
 
-    static std::vector<Entity*> entities;
-    static EntityMesh* skybox;
-    static EntityMesh* grid;
+    static std::vector<Node3D*> entities;
+    static MeshInstance3D* skybox;
+    static MeshInstance3D* grid;
 
     void render_gui();
-    bool show_tree_recursive(Entity* entity);
+    bool show_tree_recursive(Node* entity);
 
 public:
 

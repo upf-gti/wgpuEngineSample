@@ -1,10 +1,14 @@
 
+// UI
+const UI_BUTTON_SIZE = 32.0;
+
 struct VertexInput {
     @builtin(instance_index) instance_id : u32,
     @location(0) position: vec3f,
     @location(1) uv: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec3f,
+    @location(3) tangent: vec3f,
+    @location(4) color: vec3f,
 };
 
 struct VertexOutput {
@@ -17,6 +21,7 @@ struct VertexOutput {
 
 struct RenderMeshData {
     model  : mat4x4f,
+    rotation : mat4x4f,
     color  : vec4f,
 };
 
@@ -36,8 +41,8 @@ struct UIData {
     is_selected : f32,
     is_color_button : f32,
     picker_color: vec4f,
-    slider_value : f32,
     keep_rgb : f32,
-    dummy1 : f32,
-    dummy2 : f32,
+    slider_value : f32,
+    slider_max: f32,
+    is_button_disabled : f32
 };
