@@ -290,6 +290,8 @@ void SampleRenderer::render_xr()
 
 void SampleRenderer::render_mirror()
 {
+    ImGui::Render();
+
     // Get the current texture in the swapchain
     WGPUTextureView current_texture_view = wgpuSwapChainGetCurrentTextureView(webgpu_context.screen_swapchain);
     assert(current_texture_view != NULL);
@@ -333,6 +335,28 @@ void SampleRenderer::render_mirror()
 
             wgpuRenderPassEncoderRelease(render_pass);
         }
+    }
+
+    // render imgui
+    {
+        WGPURenderPassColorAttachment color_attachments = {};
+        color_attachments.view = current_texture_view;
+        color_attachments.loadOp = WGPULoadOp_Load;
+        color_attachments.storeOp = WGPUStoreOp_Store;
+        color_attachments.clearValue = { 0.0, 0.0, 0.0, 0.0 };
+        color_attachments.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+
+        WGPURenderPassDescriptor render_pass_desc = {};
+        render_pass_desc.colorAttachmentCount = 1;
+        render_pass_desc.colorAttachments = &color_attachments;
+        render_pass_desc.depthStencilAttachment = nullptr;
+
+        WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(command_encoder, &render_pass_desc);
+
+        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
+
+        wgpuRenderPassEncoderEnd(pass);
+        wgpuRenderPassEncoderRelease(pass);
     }
 
     WGPUCommandBufferDescriptor cmd_buff_descriptor = {};
