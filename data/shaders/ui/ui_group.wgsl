@@ -35,9 +35,8 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
 
     var uvs = in.uv;
-    var button_size = 32.0;
-    var tx = max(button_size, 32.0 * ui_data.num_group_items);
-    var divisions = tx / button_size;
+    var tx = max(UI_BUTTON_SIZE, UI_BUTTON_SIZE * ui_data.num_group_items);
+    var divisions = tx / UI_BUTTON_SIZE;
     uvs.x *= divisions;
     var p = vec2f(clamp(uvs.x, 0.5, divisions - 0.5), 0.5);
     var d = 1.0 - step(0.5, distance(uvs, p));
@@ -46,7 +45,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
         discard;
     }
 
-    let back_color = vec3f(0.08);
+    let back_color = in.color;
     var final_color : vec3f = back_color * d;
 
     if (GAMMA_CORRECTION == 1) {

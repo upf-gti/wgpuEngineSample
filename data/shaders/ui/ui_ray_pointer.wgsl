@@ -1,14 +1,11 @@
-#include mesh_includes.wgsl
+#include ui_palette.wgsl
+#include ../mesh_includes.wgsl
 
 #define GAMMA_CORRECTION
-
 
 @group(0) @binding(0) var<storage, read> mesh_data : InstanceData;
 
 @group(1) @binding(0) var<uniform> camera_data : CameraData;
-
-@group(2) @binding(0) var albedo_texture: texture_2d<f32>;
-@group(2) @binding(7) var texture_sampler : sampler;
 
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
@@ -31,24 +28,18 @@ struct FragmentOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> FragmentOutput {
-    
-    var dummy = camera_data.eye;
 
     var out: FragmentOutput;
-    var color : vec4f = textureSample(albedo_texture, texture_sampler, in.uv);
-    color = pow(color, vec4f(2.2));
+    var dummy = camera_data.eye;
 
-    if (color.a < 0.9) {
-        discard;
-    }
+    var f : f32 = in.uv.y * 2.0;
 
-    var _color = color.rgb;
+    var color : vec3f = mix( COLOR_TERCIARY, COLOR_HIGHLIGHT_LIGHT, f );
 
     if (GAMMA_CORRECTION == 1) {
-        _color = pow(_color, vec3f(1.0 / 2.2));
+        color = pow(color, vec3f(1.0 / 2.2));
     }
 
-    out.color = vec4f(in.color * _color, color.a);
-
+    out.color = vec4f(color, 1.0);
     return out;
 }

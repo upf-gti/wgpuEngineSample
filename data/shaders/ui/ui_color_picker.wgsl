@@ -6,10 +6,7 @@
 
 @group(1) @binding(0) var<uniform> camera_data : CameraData;
 
-@group(2) @binding(0) var albedo_texture: texture_2d<f32>;
-@group(2) @binding(7) var texture_sampler : sampler;
-
-@group(3) @binding(0) var<uniform> ui_data : UIData;
+@group(2) @binding(0) var<uniform> ui_data : UIData;
 
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
@@ -84,18 +81,18 @@ fn getColor( uvs : vec2f ) -> vec3f
 @fragment
 fn fs_main(in: VertexOutput) -> FragmentOutput {
 
+    // Mask button shape
+    var m : f32 = distance(in.uv, vec2f(0.5));
+    var alpha_mask = 1.0 - step(0.5, m);
+    if( alpha_mask < 0.1 ) {
+        discard;
+    }
+
     var dummy = camera_data.eye;
 
     var out: FragmentOutput;
 
-    var color : vec4f = textureSample(albedo_texture, texture_sampler, in.uv);
-    color = pow(color, vec4f(2.2));
-
-    if (color.a < 0.01) {
-        discard;
-    }
-
-    // Mask
+    // Border
     var uvs = in.uv;
     var divisions = 1.0;
     uvs.x *= divisions;
@@ -103,14 +100,14 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     var d = 1.0 - step(0.435, distance(uvs, p));
 
     uvs = in.uv;
-    var current_color = pow(ui_data.picker_color.rgb, vec3f(2.2)) * ui_data.picker_color.a;
+    var current_color = pow(ui_data.picker_color.rgb * ui_data.picker_color.a, vec3f(2.2));
     var final_color = pow(getColor(uvs * 2 - 1), vec3f(2.2)) * d + current_color * (1 - d);
 
     if (GAMMA_CORRECTION == 1) {
         final_color = pow(final_color, vec3f(1.0 / 2.2));
     }
 
-    out.color = vec4f(final_color, color.a);
+    out.color = vec4f(final_color, alpha_mask);
 
     return out;
 }
