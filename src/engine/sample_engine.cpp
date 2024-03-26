@@ -21,8 +21,6 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 {
 	int error = Engine::initialize(renderer, window, use_glfw, use_mirror_screen);
 
-    std::string environment = "data/textures/environments/sky.hdre";
-
     // Create skybox
 
     {
@@ -64,10 +62,11 @@ void SampleEngine::clean()
 
 void SampleEngine::update(float delta_time)
 {
-    Engine::update(delta_time);
+    for (auto entity : entities) {
+        entity->update(delta_time);
+    }
 
-    SampleRenderer* renderer = static_cast<SampleRenderer*>(SampleRenderer::instance);
-    skybox->set_translation(renderer->get_camera_eye());
+    Engine::update(delta_time);
 }
 
 void SampleEngine::render()
@@ -86,6 +85,7 @@ void SampleEngine::render_gui()
     if (SampleRenderer::instance->get_openxr_available()) {
         return;
     }
+
     bool active = true;
 
     ImGui::SetNextWindowSize({ 300, 400 });
