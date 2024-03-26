@@ -60,9 +60,6 @@ void SampleRenderer::clean()
 {
     Renderer::clean();
 
-    wgpuTextureViewRelease(eye_depth_texture_view[EYE_LEFT]);
-    wgpuTextureViewRelease(eye_depth_texture_view[EYE_RIGHT]);
-
 #if defined(XR_SUPPORT) && defined(USE_MIRROR_WINDOW)
     if (is_openxr_available) {
         for (uint8_t i = 0; i < swapchain_uniforms.size(); i++) {
