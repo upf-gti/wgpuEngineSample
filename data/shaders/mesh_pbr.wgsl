@@ -19,7 +19,7 @@
 @group(2) @binding(2) var metallic_roughness_texture: texture_2d<f32>;
 #endif
 
-@group(2) @binding(3) var<uniform> metallic_roughness: vec2f;
+@group(2) @binding(3) var<uniform> occlusion_roughness_metallic: vec3f;
 
 #ifdef NORMAL_TEXTURE
 @group(2) @binding(4) var normal_texture: texture_2d<f32>;
@@ -27,6 +27,10 @@
 
 #ifdef EMISSIVE_TEXTURE
 @group(2) @binding(5) var emissive_texture: texture_2d<f32>;
+#endif
+
+#ifdef OCLUSSION_TEXTURE
+@group(2) @binding(9) var oclussion_texture: texture_2d<f32>;
 #endif
 
 @group(2) @binding(6) var<uniform> emissive: vec3f;
@@ -53,7 +57,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     out.world_position = world_position.xyz;
     out.position = camera_data.view_projection * world_position;
     out.uv = in.uv; // forward to the fragment shader
-    out.color = in.color * instance_data.color.rgb;
+    out.color = vec4(in.color, 1.0) * albedo;
     out.normal = (instance_data.model * vec4f(in.normal, 0.0)).xyz;
     return out;
 }
@@ -76,12 +80,11 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
 #ifdef ALBEDO_TEXTURE
     let albedo_texture : vec4f = textureSample(albedo_texture, sampler_2d, in.uv);
-    m.albedo = albedo_texture.rgb * in.color;
-    m.albedo = pow(m.albedo, vec3f(2.2)) * albedo.rgb;
-    alpha = albedo_texture.a * albedo.a;
+    m.albedo = albedo_texture.rgb * in.color.rgb;
+    alpha = albedo_texture.a * in.color.a;
 #else
-    m.albedo = albedo.rgb;
-    alpha = albedo.a;
+    m.albedo = in.color.rgb;
+    alpha = in.color.a;
 #endif
 
 #ifdef ALPHA_MASK
@@ -91,25 +94,30 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 #endif
 
 #ifdef EMISSIVE_TEXTURE
-    m.emissive = textureSample(emissive_texture, sampler_2d, in.uv).rgb;
-    m.emissive = pow(m.emissive, vec3f(2.2)) * emissive;
+    m.emissive = textureSample(emissive_texture, sampler_2d, in.uv).rgb * emissive;
 #else
     m.emissive = emissive;
 #endif
 
-#ifdef METALLIC_ROUGHNESS_TEXTURE
-    var metal_rough : vec3f = textureSample(metallic_roughness_texture, sampler_2d, in.uv).rgb;
-    m.metallic = metal_rough.b * metallic_roughness.x;
-    m.roughness = max(metal_rough.g, 0.04) * metallic_roughness.y;
+#ifdef OCLUSSION_TEXTURE
+    m.ao = textureSample(oclussion_texture, sampler_2d, in.uv).r;
+    m.ao = m.ao * occlusion_roughness_metallic.r;
 #else
-    m.metallic = metallic_roughness.x;
-    m.roughness = metallic_roughness.y;
+    m.ao = 1.0;
 #endif
 
+#ifdef METALLIC_ROUGHNESS_TEXTURE
+    var metal_rough : vec3f = textureSample(metallic_roughness_texture, sampler_2d, in.uv).rgb;
+    m.roughness = metal_rough.g * occlusion_roughness_metallic.g;
+    m.metallic = metal_rough.b * occlusion_roughness_metallic.b;
+#else
+    m.roughness = occlusion_roughness_metallic.g;
+    m.metallic = occlusion_roughness_metallic.b;
+#endif
+
+    m.roughness = max(m.roughness, 0.04);
     m.c_diff = mix(m.albedo, vec3f(0.0), m.metallic);
     m.f0 = mix(vec3f(0.04), m.albedo, m.metallic);
-
-    m.ao = 1.0;
 
     // Vectors
 
@@ -119,20 +127,21 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     m.view_dir = normalize(camera_data.eye - m.pos);
 
 #ifdef NORMAL_TEXTURE
-    var normal_color = textureSample(normal_texture, sampler_2d, in.uv).rgb;
+    var normal_color = textureSample(normal_texture, sampler_2d, in.uv).rgb * 2.0 - 1.0;
+    // normal_color.y = -normal_color.y;
     m.normal = perturb_normal(m.normal, m.view_dir, in.uv, normal_color);
 #endif
 
-    m.reflected_dir = normalize(reflect( -m.view_dir, m.normal));
+    m.reflected_dir = normalize(reflect(-m.view_dir, m.normal));
 
     // var distance : f32 = length(light_position - m.pos);
     // var attenuation : f32 = pow(1.0 - saturate(distance/light_max_radius), 1.5);
-    var final_color : vec3f = vec3f(0.0); 
+    var final_color : vec3f = vec3f(0.0);
     // final_color += get_direct_light(m, vec3f(1.0), 1.0);
 
-    final_color += tonemap_filmic(get_indirect_light(m), 1.0);
-
     final_color += m.emissive;
+
+    final_color += tonemap_khronos_pbr_neutral(get_indirect_light(m));
 
     if (GAMMA_CORRECTION == 1) {
         final_color = pow(final_color, vec3(1.0 / 2.2));

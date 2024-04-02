@@ -1,3 +1,4 @@
+#include ui_palette.wgsl
 #include ../mesh_includes.wgsl
 
 #define GAMMA_CORRECTION
@@ -6,8 +7,7 @@
 
 @group(1) @binding(0) var<uniform> camera_data : CameraData;
 
-@group(2) @binding(0) var albedo_texture: texture_2d<f32>;
-@group(2) @binding(7) var texture_sampler : sampler;
+@group(2) @binding(1) var<uniform> albedo: vec4f;
 
 @group(3) @binding(0) var<uniform> ui_data : UIData;
 
@@ -21,7 +21,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     out.world_position = world_position.xyz;
     out.position = camera_data.view_projection * world_position;
     out.uv = in.uv; // forward to the fragment shader
-    out.color = in.color * instance_data.color.rgb;
+    out.color = vec4(in.color, 1.0) * albedo;
     out.normal = in.normal;
     return out;
 }
@@ -39,47 +39,44 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     var dummy = camera_data.eye;
 
+    // Alpha mask
+    var uvs_mask = in.uv;
+    var tx = max(UI_BUTTON_SIZE, UI_BUTTON_SIZE * ui_data.num_group_items);
+    var divisions = tx / UI_BUTTON_SIZE;
+    uvs_mask.x *= divisions;
+    uvs_mask.y = 1.0 - uvs_mask.y;
+    var sd = vec2f(clamp(uvs_mask.x, 0.5, divisions - 0.5), 0.5);
+    var dist = distance(uvs_mask, sd);
+    var button_radius : f32 = 0.42;
+    
+
     var out: FragmentOutput;
 
-    var color : vec4f = textureSample(albedo_texture, texture_sampler, in.uv);
-    color = pow(color, vec4f(2.2));
-
-    if (color.a < 0.01) {
-        discard;
-    }
-
-    var value = ui_data.slider_value;
-
-    // Mask
-    var uvs = in.uv;
-    var button_size = 32.0;
-    var tx = max(button_size, 32.0 * ui_data.num_group_items);
-    var divisions = tx / button_size;
-    uvs.x *= divisions;
-    uvs.y = 1.0 - uvs.y;
-    var p = vec2f(clamp(uvs.x, 0.5, divisions - 0.5), 0.5);
-    var d = 1.0 - step(0.45, distance(uvs, p));
-
-    let selected_color = vec3f(0.15, 0.02, 0.9);
-    let hover_color = vec3f(0.87, 0.6, 0.02);
+    let value = ui_data.slider_value;
+    let max_value = ui_data.slider_max;
 
     // add gradient at the end to simulate the slider thumb
-    var mesh_color = mix( selected_color, hover_color, in.uv.y);
+    var axis = select( in.uv.x, uvs_mask.y, ui_data.num_group_items == 1.0 );
 
-    var axis = select( in.uv.x, uvs.y, ui_data.num_group_items == 1.0 );
-    var grad = smoothstep(value, 1.0, axis / value);
+    var mesh_color = mix( COLOR_HIGHLIGHT_LIGHT, COLOR_TERCIARY, pow(axis, 1.5));
+
+    if(ui_data.is_hovered > 0.0) {
+        mesh_color *= 1.5;
+    }
+
+    var grad = smoothstep((value / max_value), 1.0, axis / value);
     grad = pow(grad, 12.0);
-    mesh_color += grad * 0.2;
+    mesh_color += grad * 0.5;
 
     let back_color = vec3f(0.02);
-    var final_color = select( mesh_color, back_color, axis > value || d < 1.0 );
+    var final_color = select( mesh_color, back_color, axis > (value / max_value) );
 
-    final_color = select( final_color, hover_color, d < 1.0 && ui_data.is_hovered > 0.0 );
-
+    var shadow : f32 = smoothstep(button_radius, 0.5, dist);
+    
     if (GAMMA_CORRECTION == 1) {
         final_color = pow(final_color, vec3f(1.0 / 2.2));
     }
 
-    out.color = vec4f(final_color, color.a);
+    out.color = vec4f(final_color, 1.0 - shadow);
     return out;
 }

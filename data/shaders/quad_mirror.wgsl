@@ -2,7 +2,8 @@ struct VertexInput {
     @location(0) position: vec3f,
     @location(1) uv: vec2f,
     @location(2) normal: vec3f,
-    @location(3) color: vec3f,
+    @location(3) tangent: vec3f,
+    @location(4) color: vec3f,
 };
 
 struct VertexOutput {
@@ -19,6 +20,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
 }
 
 @group(0) @binding(0) var left_eye_texture: texture_2d<f32>;
+@group(0) @binding(1) var texture_sampler : sampler;
 
 struct FragmentOutput {
     @location(0) color: vec4f
@@ -26,13 +28,11 @@ struct FragmentOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> FragmentOutput {
-    var texture_size = textureDimensions(left_eye_texture);
-    var uv_flip = in.uv;
-    uv_flip.y = 1.0 - uv_flip.y;
-    let ray_result = textureLoad(left_eye_texture, vec2u(uv_flip * vec2f(texture_size)), 0);
+
+    let xr_image = textureSample(left_eye_texture, texture_sampler, in.uv);
 
     var out: FragmentOutput;
-    out.color = vec4f(pow(ray_result.rgb, 1.0 / vec3f(2.2, 2.2, 2.2)), 1.0); // Color
+    out.color = vec4f(pow(xr_image.rgb, 1.0 / vec3f(2.2)), 1.0); // Color
 
     return out;
 }

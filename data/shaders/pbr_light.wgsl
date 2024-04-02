@@ -83,7 +83,8 @@ fn get_indirect_light( m : LitMaterial ) -> vec3f
     let ems : f32 = (1.0 - (brdf_lut.x + brdf_lut.y));
     let f_avg : vec3f = (m.f0 + (1.0 - m.f0) / 21.0);
     let fms_ems : vec3f = ems * fss_ess * f_avg / (1.0 - f_avg * ems);
-    let diffuse : vec3f = m.c_diff * (1.0 - fss_ess + fms_ems);
+    var diffuse : vec3f = m.c_diff * (1.0 - fss_ess + fms_ems);
+    diffuse = (fms_ems + diffuse) * irradiance;
 
     // Combine factors and add AO
     return (diffuse + specular) * m.ao;

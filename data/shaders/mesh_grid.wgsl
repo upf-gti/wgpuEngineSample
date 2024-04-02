@@ -4,6 +4,8 @@
 
 @group(1) @binding(0) var<uniform> camera_data : CameraData;
 
+@group(2) @binding(1) var<uniform> albedo: vec4f;
+
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
 
@@ -14,7 +16,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     out.world_position = world_position.xyz;
     out.position = camera_data.view_projection * world_position;
     out.uv = in.uv; // forward to the fragment shader
-    out.color = in.color * instance_data.color.rgb;
+    out.color = vec4(in.color, 1.0) * albedo;
     out.normal = in.normal;
     return out;
 }
@@ -49,9 +51,9 @@ fn pristine_grid(uv : vec2f, lineWidth : vec2f) -> f32
     return mix(grid2.x, 1.0, grid2.y);
 }
 
-const GRID_AREA_SIZE : f32 = 3.0;
+const GRID_AREA_SIZE : f32 = 10.0;
 const GRID_QUAD_SIZE :f32 = 0.5;
-const LINE_WIDTH : f32 = 0.04;
+const LINE_WIDTH : f32 = 0.02;
 
 @fragment
 fn fs_main(in: VertexOutput) -> FragmentOutput {
@@ -65,12 +67,10 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     var out: FragmentOutput;
 
-    out.color = vec4f(0.57, 0.57, 0.57, 1.0) *
+    out.color = vec4f(0.27, 0.27, 0.27, 1.0) *
                 pristine_grid(wrapped_uvs, vec2f(LINE_WIDTH));
 
-    if (out.color.a < 0.1) {
-        discard;
-    }
+    out.color.a *= (1.0 - 2.0 * distance(vec2f(0.5), in.uv.xy));
 
     return out;
 }
