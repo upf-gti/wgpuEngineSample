@@ -54,7 +54,7 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 
     parse_scene("data/meshes/Dancing.glb", entities);
     Node3D* dancing = entities[entities.size() - 1];
-    dancing->scale(glm::vec3(10.f));
+   // dancing->scale(glm::vec3(10.f));
 
 
  
