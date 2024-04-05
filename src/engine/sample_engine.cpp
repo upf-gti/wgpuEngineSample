@@ -13,6 +13,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include "framework/animation/skeleton.h"
+
 MeshInstance3D* SampleEngine::skybox = nullptr;
 MeshInstance3D* SampleEngine::grid = nullptr;
 std::vector<Node3D*> SampleEngine::entities;
@@ -28,32 +30,34 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
         entities.push_back(skybox);
     }
 
-    // Create grid
-    {
-        grid = new MeshInstance3D();
-        grid->add_surface(RendererStorage::get_surface("quad"));
-        grid->set_translation(glm::vec3(0.0f));
-        grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        grid->scale(glm::vec3(10.f));
+    //// Create grid
+    //{
+    //    grid = new MeshInstance3D();
+    //    grid->add_surface(RendererStorage::get_surface("quad"));
+    //    grid->set_translation(glm::vec3(0.0f));
+    //    grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //    grid->scale(glm::vec3(10.f));
 
-        // NOTE: first set the transparency and all types BEFORE loading the shader
-        Material grid_material;
-        grid_material.transparency_type = ALPHA_BLEND;
-        grid_material.shader = RendererStorage::get_shader("data/shaders/mesh_grid.wgsl", grid_material);
+    //    // NOTE: first set the transparency and all types BEFORE loading the shader
+    //    Material grid_material;
+    //    grid_material.transparency_type = ALPHA_BLEND;
+    //    grid_material.shader = RendererStorage::get_shader("data/shaders/mesh_grid.wgsl", grid_material);
 
-        grid->set_surface_material_override(grid->get_surface(0), grid_material);
+    //    grid->set_surface_material_override(grid->get_surface(0), grid_material);
 
-        entities.push_back(grid);
-    }
+    //    entities.push_back(grid);
+    //}
 
  /*   MeshInstance3D* cube = parse_mesh("data/meshes/cube/cube.obj");
     cube->scale(glm::vec3(0.1f));
     entities.push_back(cube);*/
 
     parse_scene("data/meshes/Dancing.glb", entities);
-    Node3D* eva = entities[entities.size() - 1];
-    eva->scale(glm::vec3(10.f));
-    //entities.push_back(eva);
+    Node3D* dancing = entities[entities.size() - 1];
+    dancing->scale(glm::vec3(10.f));
+
+
+ 
 
 	return error;
 }
