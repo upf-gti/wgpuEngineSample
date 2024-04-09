@@ -44,7 +44,7 @@
 #endif
 
 #ifdef USE_SKINNING
-@group(2) @binding(10) var<uniform> animated: array<mat4x4f, 57>;
+@group(2) @binding(10) var<storage, read> animated: array<mat4x4f>;
 #endif
 
 @group(3) @binding(0) var irradiance_texture: texture_cube<f32>;
