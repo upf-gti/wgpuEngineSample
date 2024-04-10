@@ -55,13 +55,15 @@
 fn vs_main(in: VertexInput) -> VertexOutput {
     
     var position = vec4f(in.position, 1.0);
-#ifdef USE_SKINNING
+    var normals = vec4f(in.normal, 0.0);
 
+#ifdef USE_SKINNING
     var skin : mat4x4f = (animated[in.joints.x]) * in.weights.x;
     skin += (animated[in.joints.y]) * in.weights.y;
     skin += (animated[in.joints.z]) * in.weights.z;
     skin += (animated[in.joints.w]) * in.weights.w;
     position = skin * position;
+    normals = skin * normals;
 #endif
 
     let instance_data : RenderMeshData = mesh_data.data[in.instance_id];
@@ -72,7 +74,8 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     out.position = camera_data.view_projection * world_position;
     out.uv = in.uv; // forward to the fragment shader
     out.color = vec4f(in.color, 1.0) * albedo;
-    out.normal = (instance_data.model * vec4f(in.normal, 0.0)).xyz;
+    out.normal = (instance_data.model * normals).xyz;
+    
     return out;
 }
 
