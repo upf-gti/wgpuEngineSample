@@ -22,7 +22,6 @@ int SampleRenderer::initialize(GLFWwindow* window, bool use_mirror_screen)
     clear_color = glm::vec4(0.22f, 0.22f, 0.22f, 1.0);
 
     init_camera_bind_group();
-    init_ibl_bind_group();
 
 #ifdef XR_SUPPORT
     if (is_openxr_available && use_mirror_screen) {
