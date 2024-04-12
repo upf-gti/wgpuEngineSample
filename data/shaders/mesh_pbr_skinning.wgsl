@@ -50,6 +50,8 @@
 @group(3) @binding(0) var irradiance_texture: texture_cube<f32>;
 @group(3) @binding(1) var brdf_lut_texture: texture_2d<f32>;
 @group(3) @binding(2) var sampler_clamp: sampler;
+@group(3) @binding(3) var<uniform> lights : array<Light, MAX_LIGHTS>;
+@group(3) @binding(4) var<uniform> num_lights : u32;
 
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
@@ -151,14 +153,12 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     m.reflected_dir = normalize(reflect(-m.view_dir, m.normal));
 
-    // var distance : f32 = length(light_position - m.pos);
-    // var attenuation : f32 = pow(1.0 - saturate(distance/light_max_radius), 1.5);
     var final_color : vec3f = vec3f(0.0);
-    // final_color += get_direct_light(m, vec3f(1.0), 1.0);
-
+    final_color += get_indirect_light(m);
+    final_color += get_direct_light(m);
     final_color += m.emissive;
 
-    final_color += tonemap_khronos_pbr_neutral(get_indirect_light(m));
+    final_color = tonemap_khronos_pbr_neutral(final_color);
 
     if (GAMMA_CORRECTION == 1) {
         final_color = pow(final_color, vec3(1.0 / 2.2));
