@@ -191,6 +191,8 @@ bool SampleEngine::show_tree_recursive(Node* entity)
             }
         }
 
+        entity->render_gui();
+
         std::vector<Node*>::iterator it = children.begin();
 
         while (it != children.end())
