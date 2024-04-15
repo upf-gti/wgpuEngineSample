@@ -34,6 +34,7 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
     // Create grid
     {
         grid = new MeshInstance3D();
+        grid->set_name("Grid");
         grid->add_surface(RendererStorage::get_surface("quad"));
         grid->set_translation(glm::vec3(0.0f));
         grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -55,10 +56,6 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 
     parse_scene("data/meshes/Dancing.glb", entities);
     dancing = entities[entities.size() - 1];
-   // dancing->scale(glm::vec3(10.f));
-
-
- 
 
 	return error;
 }
