@@ -18,7 +18,6 @@
 MeshInstance3D* SampleEngine::skybox = nullptr;
 MeshInstance3D* SampleEngine::grid = nullptr;
 std::vector<Node3D*> SampleEngine::entities;
-Node3D* dancing = nullptr;
 
 int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_glfw, bool use_mirror_screen)
 {
@@ -50,12 +49,7 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
         entities.push_back(grid);
     }
 
- /*   MeshInstance3D* cube = parse_mesh("data/meshes/cube/cube.obj");
-    cube->scale(glm::vec3(0.1f));
-    entities.push_back(cube);*/
-
-    parse_scene("data/meshes/Dancing.glb", entities);
-    dancing = entities[entities.size() - 1];
+    parse_scene("data/meshes/Woman.gltf", entities);
 
 	return error;
 }
