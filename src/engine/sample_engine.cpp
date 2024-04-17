@@ -109,6 +109,7 @@ void SampleEngine::render_gui()
                 );
 
                 if (open_file_name) {
+                    entities.pop_back();
                     parse_scene(open_file_name, entities);
                 }
             }
