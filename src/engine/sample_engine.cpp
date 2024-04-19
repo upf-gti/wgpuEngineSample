@@ -89,7 +89,6 @@ void SampleEngine::render_gui()
 
     bool active = true;
 
-    ImGui::SetNextWindowSize({ 300, 400 });
     ImGui::Begin("Debug panel", &active, ImGuiWindowFlags_MenuBar);
 
     if (ImGui::BeginMenuBar())
