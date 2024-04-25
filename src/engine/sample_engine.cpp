@@ -14,6 +14,8 @@
 #include "spdlog/spdlog.h"
 
 #include "framework/animation/skeleton.h"
+#include "framework/nodes/look_at_ik_3d.h"
+#include "framework/animation/bone_transform.h"
 
 MeshInstance3D* SampleEngine::skybox = nullptr;
 MeshInstance3D* SampleEngine::grid = nullptr;
@@ -51,7 +53,28 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 
     parse_scene("data/meshes/Woman.gltf", entities);
 
-	return error;
+    //Pose pose(4);
+    //Transform t;
+    //pose.set_local_transform(0, t);
+    //pose.set_parent(0, -1);
+    //t.position.y = 1;
+    //pose.set_local_transform(1, t);
+    //pose.set_parent(1, 0);
+    //t.position.x = 1;
+    //pose.set_local_transform(2, t);
+    //pose.set_parent(2, 1);
+    //t.position.x = 1;
+    //pose.set_local_transform(3, t);
+    //pose.set_parent(3, 2);
+    //Skeleton* skeleton = new Skeleton(pose, pose, { "Bone 1", "Bone 2", "Bone 3", "Bones 4"});
+    //SkeletonInstance3D* ski = new SkeletonInstance3D();
+    //ski->set_skeleton(skeleton);
+    //LookAtIK3D* lookat = new LookAtIK3D(ski);
+    //ski->add_child((Node3D*)(lookat));
+
+    //entities.push_back(ski);
+
+    return error;
 }
 
 void SampleEngine::clean()

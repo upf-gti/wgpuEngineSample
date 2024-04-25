@@ -5,6 +5,7 @@
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
 #include "graphics/pipeline.h"
+#include "graphics/surface.h"
 
 #include "framework/camera/flyover_camera.h"
 #include "framework/camera/orbit_camera.h"
