@@ -181,6 +181,7 @@ bool SampleEngine::show_tree_recursive(Node* entity)
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
+    flags |= ImGuiTreeNodeFlags_Framed;
     if (ImGui::TreeNodeEx(entity->get_name().c_str(), flags))
     {
         if (ImGui::BeginPopupContextItem()) // <-- use last item id as popup id
@@ -207,17 +208,21 @@ bool SampleEngine::show_tree_recursive(Node* entity)
 
         entity->render_gui();
 
-        std::vector<Node*>::iterator it = children.begin();
+        
 
+        for (size_t i = 0; i < children.size(); i++) {
+            show_tree_recursive(children[i]);
+        }
+        /*std::vector<Node*>::iterator it = children.begin();
         while (it != children.end())
         {
             if (show_tree_recursive(*it)) {
                 it = children.erase(it);
             }
-            else {
+            else { 
                 it++;
             }
-        }
+        }*/
 
         ImGui::TreePop();
     }
