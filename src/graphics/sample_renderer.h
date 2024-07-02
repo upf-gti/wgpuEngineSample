@@ -5,6 +5,7 @@
 #include "graphics/renderer.h"
 #include "graphics/texture.h"
 #include "graphics/pipeline.h"
+#include "graphics/surface.h"
 
 #include "framework/camera/flyover_camera.h"
 #include "framework/camera/orbit_camera.h"
@@ -21,6 +22,8 @@ class SampleRenderer : public Renderer {
         glm::vec3 eye;
         float dummy;
     };
+
+    uint32_t camera_buffer_stride = 0;
 
     sCameraData camera_data;
     sCameraData camera_2d_data;

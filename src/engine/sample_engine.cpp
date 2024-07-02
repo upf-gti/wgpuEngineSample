@@ -5,6 +5,7 @@
 #include "framework/input.h"
 #include "framework/scene/parse_scene.h"
 #include "graphics/sample_renderer.h"
+#include "engine/scene.h"
 
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_wgpu.h"
@@ -17,7 +18,6 @@
 
 MeshInstance3D* SampleEngine::skybox = nullptr;
 MeshInstance3D* SampleEngine::grid = nullptr;
-std::vector<Node3D*> SampleEngine::entities;
 
 int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_glfw, bool use_mirror_screen)
 {
@@ -25,9 +25,11 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 
     // Create skybox
 
+    main_scene = new Scene("main_scene");
+
     {
         skybox = new Environment3D();
-        entities.push_back(skybox);
+        main_scene->add_node(skybox);
     }
 
     // Create grid
@@ -35,7 +37,7 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
         grid = new MeshInstance3D();
         grid->set_name("Grid");
         grid->add_surface(RendererStorage::get_surface("quad"));
-        grid->set_translation(glm::vec3(0.0f));
+        grid->set_position(glm::vec3(0.0f));
         grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         grid->scale(glm::vec3(10.f));
 
@@ -46,10 +48,8 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
 
         grid->set_surface_material_override(grid->get_surface(0), grid_material);
 
-        entities.push_back(grid);
+        main_scene->add_node(grid);
     }
-
-    parse_scene("data/meshes/Woman.gltf", entities);
 
 	return error;
 }
@@ -63,9 +63,7 @@ void SampleEngine::clean()
 
 void SampleEngine::update(float delta_time)
 {
-    for (auto entity : entities) {
-        entity->update(delta_time);
-    }
+    main_scene->update(delta_time);
 
     Engine::update(delta_time);
 }
@@ -74,11 +72,9 @@ void SampleEngine::render()
 {
     render_gui();
 
-	for (auto entity : entities) {
-		entity->render();
-	}
+    main_scene->render();
 
-	Engine::render();
+    Engine::render();
 }
 
 void SampleEngine::render_gui()
@@ -108,8 +104,9 @@ void SampleEngine::render_gui()
                 );
 
                 if (open_file_name) {
-                    entities.pop_back();
+                    std::vector<Node*> entities;
                     parse_scene(open_file_name, entities);
+                    main_scene->add_nodes(entities);
                 }
             }
             ImGui::EndMenu();
@@ -124,11 +121,22 @@ void SampleEngine::render_gui()
         {
             if (ImGui::TreeNodeEx("Root", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                std::vector<Node3D*>::iterator it = entities.begin();
-                while (it != entities.end())
+                if (ImGui::BeginPopupContextItem()) // <-- use last item id as popup id
+                {
+                    if (ImGui::Button("Delete All")) {
+                        main_scene->delete_all();
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    ImGui::EndPopup();
+                }
+
+                std::vector<Node*>& nodes = main_scene->get_nodes();
+                std::vector<Node*>::iterator it = nodes.begin();
+                while (it != nodes.end())
                 {
                     if (show_tree_recursive(*it)) {
-                        it = entities.erase(it);
+                        it = nodes.erase(it);
                     }
                     else {
                         it++;
