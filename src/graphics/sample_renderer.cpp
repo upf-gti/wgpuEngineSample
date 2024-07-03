@@ -1,6 +1,7 @@
 #include "sample_renderer.h"
 
 #include "framework/camera/camera_2d.h"
+#include "framework/input.h"
 
 #include "graphics/renderer_storage.h"
 
@@ -134,7 +135,12 @@ void SampleRenderer::render_screen()
 
     camera_data.eye = camera->get_eye();
     camera_data.mvp = camera->get_view_projection();
-    camera_data.dummy = 0.f;
+
+    // Use camera position as controller position
+    camera_data.right_controller_position = camera_data.eye;
+
+    camera_data.exposure = exposure;
+    camera_data.ibl_intensity = ibl_intensity;
 
     wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_uniform.data), 0, &camera_data, sizeof(sCameraData));
 
@@ -142,7 +148,6 @@ void SampleRenderer::render_screen()
 
     camera_2d_data.eye = camera_2d->get_eye();
     camera_2d_data.mvp = camera_2d->get_view_projection();
-    camera_2d_data.dummy = 0.f;
 
     wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_2d_uniform.data), 0, &camera_2d_data, sizeof(sCameraData));
 
@@ -256,7 +261,11 @@ void SampleRenderer::render_xr()
 
         camera_data.eye = xr_context->per_view_data[i].position;
         camera_data.mvp = xr_context->per_view_data[i].view_projection_matrix;
-        camera_data.dummy = 0.f;
+
+        camera_data.right_controller_position = Input::get_controller_position(HAND_RIGHT);
+
+        camera_data.exposure = exposure;
+        camera_data.ibl_intensity = ibl_intensity;
 
         wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_uniform.data), 0, &camera_data, sizeof(sCameraData));
 

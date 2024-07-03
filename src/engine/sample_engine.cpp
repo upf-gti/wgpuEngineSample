@@ -12,6 +12,8 @@
 
 #include "framework/utils/tinyfiledialogs.h"
 
+#include "shaders/mesh_grid.wgsl.gen.h"
+
 #include "spdlog/spdlog.h"
 
 #include "framework/animation/skeleton.h"
@@ -44,7 +46,8 @@ int SampleEngine::initialize(Renderer* renderer, GLFWwindow* window, bool use_gl
         // NOTE: first set the transparency and all types BEFORE loading the shader
         Material grid_material;
         grid_material.transparency_type = ALPHA_BLEND;
-        grid_material.shader = RendererStorage::get_shader("data/shaders/mesh_grid.wgsl", grid_material);
+        grid_material.cull_type = CULL_NONE;
+        grid_material.shader = RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, grid_material);
 
         grid->set_surface_material_override(grid->get_surface(0), grid_material);
 
