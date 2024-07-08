@@ -19,12 +19,21 @@ class SampleRenderer : public Renderer {
 
     struct sCameraData {
         glm::mat4x4 mvp;
+
         glm::vec3 eye;
-        float dummy;
+        float exposure;
+
+        glm::vec3 right_controller_position;
+        float ibl_intensity;
     };
+
+    uint32_t camera_buffer_stride = 0;
 
     sCameraData camera_data;
     sCameraData camera_2d_data;
+
+    float exposure = 1.0f;
+    float ibl_intensity = 1.0f;
 
     // Mesh rendering
     WGPUBindGroup           render_bind_group_camera = nullptr;

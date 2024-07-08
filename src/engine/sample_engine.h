@@ -1,6 +1,6 @@
 #pragma once
 
-#include "engine.h"
+#include "engine/engine.h"
 
 #include <vector>
 
@@ -10,7 +10,6 @@ class MeshInstance3D;
 
 class SampleEngine : public Engine {
 
-    static std::vector<Node3D*> entities;
     static MeshInstance3D* skybox;
     static MeshInstance3D* grid;
 

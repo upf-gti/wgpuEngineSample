@@ -1,12 +1,21 @@
 #include "sample_renderer.h"
+
 #include "framework/camera/camera_2d.h"
+#include "framework/input.h"
+
+#include "graphics/renderer_storage.h"
 
 #ifdef XR_SUPPORT
-#include "dawnxr/dawnxr_internal.h"
+#include "xr/openxr_context.h"
+#include "xr/dawnxr/dawnxr_internal.h"
 #endif
 
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_wgpu.h"
+
+#include "shaders/mesh_pbr.wgsl.gen.h"
+#include "shaders/mesh_color.wgsl.gen.h"
+#include "shaders/quad_mirror.wgsl.gen.h"
 
 #include "spdlog/spdlog.h"
 
@@ -45,7 +54,8 @@ int SampleRenderer::initialize(GLFWwindow* window, bool use_mirror_screen)
     // Camera
     std::vector<Uniform*> uniforms = { &camera_uniform };
 
-    render_bind_group_camera = webgpu_context->create_bind_group(uniforms, RendererStorage::get_shader("data/shaders/mesh_pbr.wgsl"), 1);
+    render_bind_group_camera = webgpu_context->create_bind_group(uniforms, RendererStorage::get_shader_from_source(shaders::mesh_pbr::source, shaders::mesh_pbr::path), 1);
+
 
     // Orthographic camera for ui rendering
 
@@ -56,7 +66,7 @@ int SampleRenderer::initialize(GLFWwindow* window, bool use_mirror_screen)
     camera_2d->set_orthographic(0.0f, w, 0.0f, h, -1.0f, 1.0f);
 
     uniforms = { &camera_2d_uniform };
-    render_bind_group_camera_2d = webgpu_context->create_bind_group(uniforms, RendererStorage::get_shader("data/shaders/mesh_color.wgsl"), 1);
+    render_bind_group_camera_2d = webgpu_context->create_bind_group(uniforms, RendererStorage::get_shader_from_source(shaders::mesh_color::source, shaders::mesh_color::path), 1);
 
     return 0;
 }
@@ -132,7 +142,12 @@ void SampleRenderer::render_screen()
 
     camera_data.eye = camera->get_eye();
     camera_data.mvp = camera->get_view_projection();
-    camera_data.dummy = 0.f;
+
+    // Use camera position as controller position
+    camera_data.right_controller_position = camera_data.eye;
+
+    camera_data.exposure = exposure;
+    camera_data.ibl_intensity = ibl_intensity;
 
     wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_uniform.data), 0, &camera_data, sizeof(sCameraData));
 
@@ -140,7 +155,6 @@ void SampleRenderer::render_screen()
 
     camera_2d_data.eye = camera_2d->get_eye();
     camera_2d_data.mvp = camera_2d->get_view_projection();
-    camera_2d_data.dummy = 0.f;
 
     wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_2d_uniform.data), 0, &camera_2d_data, sizeof(sCameraData));
 
@@ -254,7 +268,11 @@ void SampleRenderer::render_xr()
 
         camera_data.eye = xr_context->per_view_data[i].position;
         camera_data.mvp = xr_context->per_view_data[i].view_projection_matrix;
-        camera_data.dummy = 0.f;
+
+        camera_data.right_controller_position = Input::get_controller_position(HAND_RIGHT);
+
+        camera_data.exposure = exposure;
+        camera_data.ibl_intensity = ibl_intensity;
 
         wgpuQueueWriteBuffer(webgpu_context->device_queue, std::get<WGPUBuffer>(camera_uniform.data), 0, &camera_data, sizeof(sCameraData));
 
@@ -457,11 +475,13 @@ void SampleRenderer::init_mirror_pipeline()
 
 void SampleRenderer::init_camera_bind_group()
 {
-    camera_uniform.data = webgpu_context->create_buffer(sizeof(sCameraData), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform, nullptr, "camera_buffer");
+    camera_buffer_stride = std::max(static_cast<uint32_t>(sizeof(sCameraData)), required_limits.limits.minUniformBufferOffsetAlignment);
+
+    camera_uniform.data = webgpu_context->create_buffer(camera_buffer_stride * EYE_COUNT, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform, nullptr, "camera_buffer");
     camera_uniform.binding = 0;
     camera_uniform.buffer_size = sizeof(sCameraData);
 
-    camera_2d_uniform.data = webgpu_context->create_buffer(sizeof(sCameraData), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform, nullptr, "camera_buffer");
+    camera_2d_uniform.data = webgpu_context->create_buffer(sizeof(sCameraData), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform, nullptr, "camera_2d_buffer");
     camera_2d_uniform.binding = 0;
     camera_2d_uniform.buffer_size = sizeof(sCameraData);
 }
