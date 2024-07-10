@@ -94,9 +94,9 @@ void SampleEngine::render_gui()
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open scene (.gltf, .glb, .obj)"))
+            if (ImGui::MenuItem("Open scene (.gltf, .glb, .obj, .vdb)"))
             {
-                std::vector<const char*> filter_patterns = { "*.gltf", "*.glb", "*.obj" };
+                std::vector<const char*> filter_patterns = { "*.gltf", "*.glb", "*.obj", "*.vdb"};
                 char const* open_file_name = tinyfd_openFileDialog(
                     "Scene loader",
                     "",
