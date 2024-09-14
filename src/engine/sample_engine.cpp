@@ -67,4 +67,3 @@ void SampleEngine::render()
 
     Engine::render();
 }
-
