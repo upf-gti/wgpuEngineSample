@@ -9,7 +9,7 @@
 
 #include "shaders/mesh_grid.wgsl.gen.h"
 
-int SampleEngine::initialize(Renderer* renderer)
+int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
     int error = Engine::initialize(renderer);
 

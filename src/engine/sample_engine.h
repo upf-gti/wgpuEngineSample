@@ -6,7 +6,7 @@ class SampleEngine : public Engine {
 
 public:
 
-	int initialize(Renderer* renderer) override;
+	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;
     void clean() override;
 
 	void update(float delta_time) override;
