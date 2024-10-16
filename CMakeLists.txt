@@ -109,8 +109,8 @@ if (EMSCRIPTEN)
 #        -sERROR_ON_WASM_CHANGES_AFTER_LINK
         -O0
         # ------------
-        --shell-file "${ROOMS_DIR_ROOT}/${SHELL_FILE}"
-        --preload-file "${ROOMS_DIR_ROOT}/data@/data"
+        --shell-file "${SAMPLE_PROJECT_DIR_ROOT}/${SHELL_FILE}"
+        --preload-file "${SAMPLE_PROJECT_DIR_ROOT}/data@/data"
 	)
 
 	# Make sure to re-link when the shell file changes
