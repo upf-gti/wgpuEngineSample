@@ -5,7 +5,11 @@ set(SAMPLE_PROJECT_DIR_ROOT        ${CMAKE_CURRENT_SOURCE_DIR})
 set(SAMPLE_PROJECT_DIR_SOURCES     "${SAMPLE_PROJECT_DIR_ROOT}/src")
 set(SAMPLE_PROJECT_DIR_LIBS        "${SAMPLE_PROJECT_DIR_ROOT}/libraries")
 
-project(sample_project LANGUAGES C CXX)
+if (EMSCRIPTEN)
+    project(index LANGUAGES C CXX)
+else()
+    project(sample_project LANGUAGES C CXX)
+endif()
 
 add_definitions(-D_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 
@@ -45,11 +49,19 @@ add_executable(${PROJECT_NAME} ${SAMPLE_PROJECT_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SAMPLE_PROJECT_DIR_SOURCES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_ENVIRONMENT "DAWN_DEBUG_BREAK_ON_ERROR=1")
-
-set_property(DIRECTORY ${SAMPLE_PROJECT_DIR_ROOT} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${SAMPLE_PROJECT_DIR_ROOT}")
+
+# OS Dependant project setup
+if(APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES 
+            XCODE_GENERATE_SCHEME TRUE 
+            XCODE_SCHEME_WORKING_DIRECTORY ${SAMPLE_PROJECT_DIR_ROOT})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+elseif(MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_ENVIRONMENT "DAWN_DEBUG_BREAK_ON_ERROR=1")
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${SAMPLE_PROJECT_DIR_ROOT}")
+    set_property(DIRECTORY ${SAMPLE_PROJECT_DIR_ROOT} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+endif()
 
 if (MSVC)
     add_compile_options(/Zc:__cplusplus)
@@ -127,8 +139,10 @@ endif()
 add_subdirectory(libraries/wgpuEngine)
 target_link_libraries(${PROJECT_NAME} webgpuEngine)
 
-# vulkan
-include_directories(${Vulkan_INCLUDE_DIR})
+if (NOT APPLE)
+    # vulkan
+    include_directories(${Vulkan_INCLUDE_DIR})
+endif()
 
 # Enable multicore compile on VS solution
 if(MSVC)

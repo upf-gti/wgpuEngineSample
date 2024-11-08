@@ -17,6 +17,11 @@ int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configurat
 
     main_scene = new Scene("main_scene");
 
+	return error;
+}
+
+int SampleEngine::post_initialize()
+{
     // Create skybox
     {
         MeshInstance3D* skybox = new Environment3D();
@@ -44,7 +49,7 @@ int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configurat
         main_scene->add_node(grid);
     }
 
-	return error;
+    return 0u;
 }
 
 void SampleEngine::clean()

@@ -10,7 +10,10 @@ public:
 
     SampleRenderer();
 
-    int initialize(GLFWwindow* window, bool use_mirror_screen = false) override;
+    int pre_initialize(GLFWwindow* window, bool use_mirror_screen = false) override;
+    int initialize() override;
+    int post_initialize() override;
+
     void clean() override;
 
     void update(float delta_time) override;
