@@ -8,7 +8,7 @@ class SampleRenderer : public Renderer {
 
 public:
 
-    SampleRenderer();
+    SampleRenderer(const sRendererConfiguration& config = {});
 
     int pre_initialize(GLFWwindow* window, bool use_mirror_screen = false) override;
     int initialize() override;

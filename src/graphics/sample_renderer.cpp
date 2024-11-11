@@ -2,7 +2,7 @@
 
 #include "graphics/shader.h"
 
-SampleRenderer::SampleRenderer() : Renderer()
+SampleRenderer::SampleRenderer(const sRendererConfiguration& config) : Renderer(config)
 {
 
 }
