@@ -11,7 +11,7 @@
 
 int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
-    int error = Engine::initialize(renderer);
+    int error = Engine::initialize(renderer, configuration);
 
     if (error) return error;
 
