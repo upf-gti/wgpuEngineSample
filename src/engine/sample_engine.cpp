@@ -43,7 +43,7 @@ int SampleEngine::post_initialize()
         grid_material->set_transparency_type(ALPHA_BLEND);
         grid_material->set_cull_type(CULL_NONE);
         grid_material->set_type(MATERIAL_UNLIT);
-        grid_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, grid_material));
+        grid_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, grid_material));
         grid->set_surface_material_override(grid->get_surface(0), grid_material);
 
         main_scene->add_node(grid);
@@ -66,7 +66,9 @@ void SampleEngine::update(float delta_time)
 
 void SampleEngine::render()
 {
-    render_default_gui();
+    if (show_imgui) {
+        render_default_gui();
+    }
 
     main_scene->render();
 
