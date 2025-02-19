@@ -11,17 +11,15 @@
 
 int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
 {
-    int error = Engine::initialize(renderer, configuration);
-
-    if (error) return error;
-
-    main_scene = new Scene("main_scene");
-
-	return error;
+	return Engine::initialize(renderer, configuration);
 }
 
 int SampleEngine::post_initialize()
 {
+    Engine::post_initialize();
+
+    main_scene = new Scene("main_scene");
+
     // Create skybox
     {
         MeshInstance3D* skybox = new Environment3D();
