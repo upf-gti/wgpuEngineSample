@@ -75,21 +75,23 @@ if (EMSCRIPTEN)
     )
 
     add_library(webgpu_layer
-        "${CMAKE_BINARY_DIR}/_deps/emdawn-src/include/webgpu.cpp"
+        "${CMAKE_BINARY_DIR}/_deps/emdawn-src/webgpu.cpp"
     )
     target_link_libraries(${PROJECT_NAME}
         webgpu_layer
     )
 
     add_compile_options(
-        "-fno-exceptions"
+        # "-fno-exceptions"
         "$<$<CONFIG:Release>:-flto>"
     )
 
     add_link_options(
-        "-fno-exceptions"
+        # "-fno-exceptions"
         "$<$<CONFIG:Release>:-flto>"
     )
+
+    # See https://github.com/kainino0x/webgpu-cross-platform-demo/tree/dawnwasm for a sample setup
 
     target_link_options(${PROJECT_NAME} PRIVATE
 
@@ -102,7 +104,6 @@ if (EMSCRIPTEN)
         "--js-library=${CMAKE_BINARY_DIR}/_deps/emdawn-src/library_webgpu_generated_struct_info.js"
         "--js-library=${CMAKE_BINARY_DIR}/_deps/emdawn-src/library_webgpu_generated_sig_info.js"
         "--js-library=${CMAKE_BINARY_DIR}/_deps/emdawn-src/library_webgpu.js"
-        "--js-library=${CMAKE_BINARY_DIR}/_deps/emdawn-src/library_html5_webgpu.js"
         "--closure-args=--externs=${CMAKE_BINARY_DIR}/_deps/emdawn-src/webgpu-externs.js"
 
         -sUSE_GLFW=3
