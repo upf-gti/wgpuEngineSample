@@ -11,6 +11,24 @@ else()
     project(sample_project LANGUAGES C CXX)
 endif()
 
+# Enable multicore and simd compile on VS solution
+if(MSVC)
+    add_definitions(/MP)
+    add_definitions(/arch:AVX2)
+
+    # enable link time optimization
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_definitions(/GL)
+        add_definitions(/LTCG)
+    endif()
+
+    # disable RTTI (dynamic cast)
+#    string(REGEX REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+    # disable exceptions
+	string(REGEX REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+endif()
+
 add_definitions(-D_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 
 # Macro to map filters to folder structure for MSVC projects
@@ -139,11 +157,6 @@ endif()
 # wgpuEngine
 add_subdirectory(libraries/wgpuEngine)
 target_link_libraries(${PROJECT_NAME} webgpuEngine)
-
-if (NOT APPLE)
-    # vulkan
-    include_directories(${Vulkan_INCLUDE_DIR})
-endif()
 
 # Enable multicore compile on VS solution
 if(MSVC)
