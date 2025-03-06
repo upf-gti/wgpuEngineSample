@@ -37,6 +37,32 @@
       totalDependencies: 0
     };
 
+    async function onEnginePreInitialized() {
+
+        // await Promise.resolve( Module.Engine.getInstance() ).then( result => {
+
+        //     if ( !result ) {
+        //         console.error( "Module Instance is null" );
+        //     }
+
+        //     window.engineInstance = result;
+
+        // } ).catch( error => {
+        //     console.log( error );
+        // });
+
+        // Promise.resolve( window.engineInstance.setWasmModuleInitialized(true) ).then( 
+
+        // ).catch( error => {
+        //     console.log( error );
+        // });
+
+    }
+
+    function onEngineInitialized()
+    {
+    }
+
     (async () => {
       // Custom for WebGPU
       if (!navigator.gpu) {
