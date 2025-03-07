@@ -39,23 +39,23 @@
 
     async function onEnginePreInitialized() {
 
-        // await Promise.resolve( Module.Engine.getInstance() ).then( result => {
+        await Promise.resolve( Module.Engine.getInstance() ).then( result => {
 
-        //     if ( !result ) {
-        //         console.error( "Module Instance is null" );
-        //     }
+            if ( !result ) {
+                console.error( "Module Instance is null" );
+            }
 
-        //     window.engineInstance = result;
+            window.engineInstance = result;
 
-        // } ).catch( error => {
-        //     console.log( error );
-        // });
+        } ).catch( error => {
+            console.log( error );
+        });
 
-        // Promise.resolve( window.engineInstance.setWasmModuleInitialized(true) ).then( 
+        Promise.resolve( window.engineInstance.setWasmModuleInitialized(true) ).then( 
 
-        // ).catch( error => {
-        //     console.log( error );
-        // });
+        ).catch( error => {
+            console.log( error );
+        });
 
     }
 
