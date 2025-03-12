@@ -8,8 +8,11 @@
 </head>
 
 <body>
+    <header>
+          <button id="xr-button" class="barebones-button" disabled>WebXR or WebGPU not supported</button>
+    </header>
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1
-        style="position:fixed;height:100%;width:100%;top:0%;left:0%;resize:both;"></canvas>
+        style="position:relative;height:100%;width:100%;top:0%;left:0%;resize:both;"></canvas>
     <template id="main-script">
         {{{ SCRIPT }}}
     </template>

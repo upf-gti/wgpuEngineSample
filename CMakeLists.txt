@@ -124,21 +124,23 @@ if (EMSCRIPTEN)
         "--js-library=${CMAKE_BINARY_DIR}/_deps/emdawn-src/library_webgpu.js"
         "--closure-args=--externs=${CMAKE_BINARY_DIR}/_deps/emdawn-src/webgpu-externs.js"
 
+        -sEXPORTED_FUNCTIONS=_main,_malloc,_free
         -sUSE_GLFW=3
         -sALLOW_MEMORY_GROWTH
         -sASYNCIFY
-#        -sWASM=0
 #        -sASSERTIONS
 #        -fsanitize=address
         -Wdeprecated-literal-operator
         -sSTACK_SIZE=5MB
         -sASYNCIFY_STACK_SIZE=10000
         -lembind # to bind functions from c++ to javascript
-#        -O3
-#        -sWASM_BIGINT
+        -sWASM_BIGINT
+
         # only for dev
-#        -sERROR_ON_WASM_CHANGES_AFTER_LINK
-#        -O0
+        #-sERROR_ON_WASM_CHANGES_AFTER_LINK
+        #-sWASM=0
+        # For faster debug builds
+        # -O1
         # ------------
         --shell-file "${SAMPLE_PROJECT_DIR_ROOT}/${SHELL_FILE}"
         --preload-file "${SAMPLE_PROJECT_DIR_ROOT}/data@/data"
