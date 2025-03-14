@@ -2,7 +2,12 @@
 
 #include "engine/engine.h"
 
+class MeshInstance3D;
+
 class SampleEngine : public Engine {
+
+    MeshInstance3D* controller_mesh_left = nullptr;
+    MeshInstance3D* controller_mesh_right = nullptr;
 
 public:
 
