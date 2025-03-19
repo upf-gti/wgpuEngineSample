@@ -1,8 +1,8 @@
 #include "sample_engine.h"
 
 #include "framework/nodes/environment_3d.h"
-//#include "framework/parsers/parse_gltf.h"
-#include "framework/parsers/parse_obj.h"
+#include "framework/parsers/parse_gltf.h"
+//#include "framework/parsers/parse_obj.h"
 #include "framework/input.h"
 
 #include "graphics/sample_renderer.h"
@@ -35,25 +35,13 @@ int SampleEngine::post_initialize()
     // Load Meta Quest Controllers and Controller pointer
     if (renderer->get_xr_available())
     {
-        /*std::vector<Node*> entities;
+        std::vector<Node*> entities_left;
+        std::vector<Node*> entities_right;
         GltfParser parser;
-        parser.parse("data/meshes/controllers/left_controller.glb", entities);
-        parser.parse("data/meshes/controllers/right_controller.glb", entities);
-        controller_mesh_left = static_cast<MeshInstance3D*>(entities[0]);
-        controller_mesh_right = static_cast<MeshInstance3D*>(entities[1]);*/
-
-        controller_mesh_left = new MeshInstance3D();
-        controller_mesh_left->set_name("controller_mesh_left");
-        controller_mesh_left->add_surface(RendererStorage::get_surface("box"));
-
-        controller_mesh_right = new MeshInstance3D();
-        controller_mesh_right->set_name("controller_mesh_right");
-        controller_mesh_right->add_surface(RendererStorage::get_surface("box"));
-
-        Material* controller_material = new Material();
-        controller_material->set_shader(RendererStorage::get_shader_from_source(shaders::mesh_forward::source, shaders::mesh_forward::path, shaders::mesh_forward::libraries, controller_material));
-        controller_mesh_left->set_surface_material_override(controller_mesh_left->get_surface(0), controller_material);
-        controller_mesh_right->set_surface_material_override(controller_mesh_right->get_surface(0), controller_material);
+        parser.parse("data/meshes/controllers/left_controller.glb", entities_left);
+        parser.parse("data/meshes/controllers/right_controller.glb", entities_right);
+        controller_mesh_left = static_cast<Node3D*>(entities_left[0]);
+        controller_mesh_right = static_cast<Node3D*>(entities_right[0]);
     }
 
     // Create grid
@@ -93,9 +81,7 @@ void SampleEngine::update(float delta_time)
 
     if (renderer->get_xr_available()) {
         controller_mesh_left->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_LEFT)));
-        controller_mesh_left->scale({ 0.1f , 0.1f , 0.1f });
         controller_mesh_right->set_transform(Transform::mat4_to_transform(Input::get_controller_pose(HAND_RIGHT)));
-        controller_mesh_right->scale({ 0.1f , 0.1f , 0.1f });
     }
 }
 
