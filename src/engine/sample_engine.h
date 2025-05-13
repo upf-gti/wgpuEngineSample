@@ -9,6 +9,8 @@ class SampleEngine : public Engine {
     Node3D* controller_mesh_left = nullptr;
     Node3D* controller_mesh_right = nullptr;
 
+    Node3D* scene_root = nullptr;
+
 public:
 
 	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;
@@ -19,6 +21,8 @@ public:
 
 	void update(float delta_time) override;
 	void render() override;
+
+    void append_glb(const std::string& filename);
 
 #ifdef __EMSCRIPTEN__
     void set_wasm_module_initialized(bool value) {

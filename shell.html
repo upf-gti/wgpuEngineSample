@@ -4,13 +4,13 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>wgpuEngine Sample Project</title>
+    <title>Rooms</title>
 </head>
 
 <body>
     <button id="xr-button" style="z-index:10;position:absolute;top:2%;left:2%" disabled>WebXR or WebGPU not supported</button>
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1
-        style="position:fixed;height:100%;width:100%;top:0%;left:0%;resize:both;"></canvas>
+            style="position:fixed;height:100%;width:100%;top:0%;left:0%;resize:both;"></canvas>
     <template id="main-script">
         {{{ SCRIPT }}}
     </template>
@@ -37,24 +37,29 @@
 
         async function onEnginePreInitialized() {
 
-            await Promise.resolve( Module.Engine.getInstance() ).then( result => {
+            await Promise.resolve(Module.Engine.getInstance()).then(result => {
 
-                if ( !result ) {
-                    console.error( "Module Instance is null" );
+                if (!result) {
+                    console.error("Module Instance is null");
                 }
 
                 window.engineInstance = result;
 
-            } ).catch( error => {
-                console.log( error );
+            }).catch(error => {
+                console.log(error);
             });
 
-            Promise.resolve( window.engineInstance.setWasmModuleInitialized(true) ).then().catch( error => {
-                console.log( error );
+            Promise.resolve(window.engineInstance.setWasmModuleInitialized(true)).then().catch(error => {
+                console.log(error);
             });
         }
 
         function onEngineInitialized() {
+            var script = document.createElement('script');
+            script.type = 'module';
+            script.src = "./script.js";
+            script.async = false;
+            document.getElementsByTagName('head')[0].appendChild(script);
         }
 
         (async () => {

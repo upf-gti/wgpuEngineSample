@@ -100,3 +100,17 @@ void SampleEngine::render()
 
     Engine::render();
 }
+
+
+void SampleEngine::append_glb(const std::string& filename)
+{
+    std::vector<Node*> entities;
+
+    GltfParser gltf_parser;
+
+    gltf_parser.parse(filename.c_str(), entities, PARSE_NO_FLAGS);
+
+    if (!entities.empty()) {
+        main_scene->add_nodes(entities);
+    }
+}

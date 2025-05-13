@@ -12,8 +12,8 @@ EMSCRIPTEN_BINDINGS(_Class_) {
     emscripten::class_<SampleEngine>("Engine")
         .constructor<>()
         .class_function("getInstance", &SampleEngine::get_sample_instance, emscripten::return_value_policy::reference())
-        .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized);
-
+        .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized)
+        .function("appendGLB", &SampleEngine::append_glb);
 }
 
 #endif
