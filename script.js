@@ -15,11 +15,6 @@ window.App = {
 
     init() {
 
-        this.cameraTypes = [ "Orbit", "Flyover" ];
-        this.cameraNames = [ ];
-
-        this.cameraSpeed = 1.0;
-
         this.initUI();
     },
 
@@ -38,7 +33,12 @@ window.App = {
             e.preventDefault();
             //this.toggleModal( true );
             const file = e.dataTransfer.files[0];
-            this.loadLocation(this._loadGltf, file);
+            const ext = this.getExtension( file.name );
+            switch(ext)
+            {
+                case "glb": this.loadLocation(this._loadGltf, file); break;
+                case "ply": this.loadLocation(this._loadPly, file); break;
+            }
         });
 
         // Create loading  modal
@@ -56,46 +56,14 @@ window.App = {
         document.body.appendChild( this.modal );
     },
 
-   
+    getExtension( filename ) {
+
+        return filename.includes('.') ? filename.split('.').pop() : null;
+    },
 
     toggleModal( force ) {
 
         this.modal.hidden = force !== undefined ? (!force) : !this.modal.hidden;
-    },
-
-    setCameraType( type ) {
-
-        console.log( "Setting " + type + " Camera" );
-
-        const index = this.cameraTypes.indexOf( type );
-
-        window.engineInstance.setCameraType( index );
-    },
-
-    setCameraSpeed( value ) {
-
-        window.engineInstance.setCameraSpeed( value );
-    },
-
-    resetCamera() {
-
-        if( this.cameraNames.length )
-        {
-            this.lookAtCameraIndexFromName( this.cameraNames[ 0 ] );
-        }
-        else
-        {
-            window.engineInstance.resetCamera();
-        }
-    },
-
-    lookAtCameraIndexFromName( name ) {
-
-        console.log( "Look at " + name );
-
-        const index = this.cameraNames.indexOf( name );
-
-        window.engineInstance.setCameraLookAtIndex( index );
     },
 
     loadLocation( loader, file, data ) {
@@ -135,7 +103,7 @@ window.App = {
 
         this._fileStore( name, buffer );
 
-        var cameraNamesVector = window.engineInstance.appendGLB( name );
+        window.engineInstance.appendGLB( name );
 
         this.toggleModal( false );
     },
@@ -150,10 +118,7 @@ window.App = {
 
         window.engineInstance.loadPly( name );
 
-        this.cameraNames = []
-
         this.toggleModal( false );
-
     },
 
     _fileStore( filename, buffer ) {
