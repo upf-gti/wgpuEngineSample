@@ -1,9 +1,76 @@
+// bindings.idl for wgpuEngine
+// https://github.com/upf-gti/wgpuEngine
+
+/*
+	Math
+*/
+
 [Prefix = "glm::"]
-interface vec3{
+interface vec3 {
 	void vec3();
 	void vec3(float x, float y, float z);
+	attribute float x;
+	attribute float y;
+	attribute float z;
+};
+
+[Prefix = "glm::"]
+interface quat {
+	void quat();
+	void quat(float x, float y, float z, float w);
+	attribute float x;
+	attribute float y;
+	attribute float z;
+	attribute float w;
 };
 
 interface Transform {
   void Transform();
+};
+
+/*
+	Camera
+*/
+
+enum eCameraType {
+	"CAMERA_ORBIT",
+	"CAMERA_FLYOVER"
+};
+
+/*
+	Renderer
+*/
+
+interface sRendererConfiguration {
+	void sRendererConfiguration();
+	// WGPULimits required_limits = {};
+	// std::vector<WGPUFeatureName> features;
+};
+
+interface Renderer {
+	void Renderer([Const, Ref] sRendererConfiguration configuration);
+};
+
+/*
+	Engine
+*/
+
+interface sEngineConfiguration {
+	void sEngineConfiguration();
+	// attribute long window_width;
+	// attribute long window_height;
+	attribute eCameraType camera_type;
+	[Value] attribute vec3 camera_eye;
+	[Value] attribute vec3 camera_center;
+	attribute short msaa_count;
+	// attribute boolean fullscreen;
+};
+
+interface Engine {
+	void Engine();
+	long initialize(Renderer renderer, [Const, Ref] sEngineConfiguration configuration);
+	//void clean();
+	//void start_loop();
+	//boolean get_wasm_module_initialized();
+	//void set_wasm_module_initialized(boolean value);
 };

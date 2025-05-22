@@ -130,15 +130,4 @@ window.App = {
     }
 };
 
-Promise.resolve( Module.Engine.getInstance() ).then( result => {
-
-    if ( !result ) {
-        console.error( "Module Instance is null" );
-    }
-
-    window.engineInstance = result;
-    window.App.init();
-
-} ).catch( error => {
-    console.log( error );
-});
+window.App.init();

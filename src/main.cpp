@@ -9,7 +9,7 @@
 // Binding code
 EMSCRIPTEN_BINDINGS(_Class_) {
 
-    emscripten::class_<SampleEngine>("Engine")
+    emscripten::class_<SampleEngine>("SampleEngine")
         .constructor<>()
         .class_function("getInstance", &SampleEngine::get_sample_instance, emscripten::return_value_policy::reference())
         .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized)

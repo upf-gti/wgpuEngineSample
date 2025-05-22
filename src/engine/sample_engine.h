@@ -13,7 +13,7 @@ class SampleEngine : public Engine {
 
 public:
 
-	int initialize(Renderer* renderer, sEngineConfiguration configuration = {}) override;
+	int initialize(Renderer* renderer, const sEngineConfiguration& configuration = {}) override;
     int post_initialize() override;
     void clean() override;
 
