@@ -1,0 +1,9 @@
+[Prefix = "glm::"]
+interface vec3{
+	void vec3();
+	void vec3(float x, float y, float z);
+};
+
+interface Transform {
+  void Transform();
+};
