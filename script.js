@@ -43,7 +43,6 @@ window.App = {
             gridMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_grid", gridMaterial ) );
 
             const surface = WGE.RendererStorage.getSurface("quad");
-
             const grid = new WGE.MeshInstance3D();
             // grid.set_name("Grid");
             grid.add_surface( surface );
@@ -60,15 +59,8 @@ window.App = {
         {
             const boxMaterial = new WGE.Material();
             boxMaterial.set_color(new WGE.vec4(1.0, 0.0, 0.0, 0.50));
-
-            // Load texture from file
-            const filename = "wall.png";
-            {
-                const data = await this._requestBinary( filename ).catch(( err ) => console.error( err ) );
-                this._fileStore( filename, data );
-            }
-
-            boxMaterial.set_diffuse_texture( WGE.RendererStorage.getTexture( filename ) );
+            // By now this needs an await, because we ned to wait for the texture to be loaded in JS
+            boxMaterial.set_diffuse_texture( await WGE.RendererStorage.getTexture( "wall.png" ) );
             boxMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_forward", boxMaterial ) );
 
             const surface = WGE.RendererStorage.getSurface("box");
