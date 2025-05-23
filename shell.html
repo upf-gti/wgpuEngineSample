@@ -37,7 +37,7 @@
 
         async function onEnginePreInitialized() {
 
-            await Promise.resolve(Module.SampleEngine.getInstance()).then(result => {
+            await Promise.resolve(Module.Engine.prototype.get_instance()).then(result => {
 
                 if (!result) {
                     console.error("Module Instance is null");
@@ -49,7 +49,7 @@
                 console.log(error);
             });
 
-            Promise.resolve(window.engineInstance.setWasmModuleInitialized(true)).then().catch(error => {
+            Promise.resolve(window.engineInstance.set_wasm_module_initialized(true)).then().catch(error => {
                 console.log(error);
             });
         }

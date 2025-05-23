@@ -2,16 +2,37 @@
 // https://github.com/upf-gti/wgpuEngine
 
 /*
-	Math
+*	Math
 */
+
+[Prefix = "glm::"]
+interface vec2 {
+    void vec2();
+    void vec2(float v);
+    void vec2(float x, float y);
+    attribute float x;
+    attribute float y;
+};
 
 [Prefix = "glm::"]
 interface vec3 {
 	void vec3();
+    void vec3(float v);
 	void vec3(float x, float y, float z);
 	attribute float x;
 	attribute float y;
 	attribute float z;
+};
+
+[Prefix = "glm::"]
+interface vec4 {
+    void vec4();
+    void vec4(float v);
+    void vec4(float x, float y, float z, float w);
+    attribute float x;
+    attribute float y;
+    attribute float z;
+    attribute float w;
 };
 
 [Prefix = "glm::"]
@@ -24,12 +45,17 @@ interface quat {
 	attribute float w;
 };
 
+[Prefix = "glm::"]
+interface mat4x4 {
+    void mat4x4();
+};
+
 interface Transform {
   void Transform();
 };
 
 /*
-	Camera
+*	Camera
 */
 
 enum eCameraType {
@@ -38,7 +64,181 @@ enum eCameraType {
 };
 
 /*
-	Renderer
+*	Material and Surface
+*/
+
+enum eMaterialType {
+    "MATERIAL_PBR",
+    "MATERIAL_UNLIT",
+    "MATERIAL_UI"
+};
+
+enum eTransparencyType {
+    "ALPHA_OPAQUE",
+    "ALPHA_BLEND",
+    "ALPHA_MASK",
+    "ALPHA_HASH"
+};
+
+enum eTopologyType {
+    "TOPOLOGY_POINT_LIST",
+    "TOPOLOGY_LINE_LIST",
+    "TOPOLOGY_LINE_STRIP",
+    "TOPOLOGY_TRIANGLE_LIST",
+    "TOPOLOGY_TRIANGLE_STRIP"
+};
+
+enum eCullType {
+    "CULL_NONE",
+    "CULL_BACK",
+    "CULL_FRONT"
+};
+
+interface Shader {
+    void Shader();
+};
+
+interface Pipeline {
+    void Pipeline();
+};
+
+interface Texture {
+    void Texture();
+};
+
+interface Material {
+    void Material();
+    void set_color([Const, Ref] vec4 color);
+    void set_roughness(float roughness);
+    void set_metallic(float metallic);
+    void set_occlusion(float occlusion);
+    void set_emissive([Const, Ref] vec3 emissive);
+    void set_diffuse_texture(Texture diffuse_texture);
+    void set_metallic_roughness_texture(Texture metallic_roughness_texture);
+    void set_normal_texture(Texture normal_texture);
+    void set_emissive_texture(Texture emissive_texture);
+    void set_occlusion_texture(Texture occlusion_texture);
+    void set_alpha_mask(float alpha_mask);
+    void set_depth_read_write(boolean value);
+    void set_depth_read(boolean depth_read);
+    void set_depth_write(boolean depth_write);
+    void set_use_skinning(boolean use_skinning);
+    void set_is_2D(boolean is_2D);
+    void set_fragment_write(boolean fragment_write);
+    void set_transparency_type(eTransparencyType transparency_type);
+    void set_topology_type(eTopologyType topology_type);
+    void set_cull_type(eCullType cull_type);
+    void set_type(eMaterialType type);
+    void set_priority(short priority);
+    void set_shader(Shader shader);
+    void set_shader_pipeline(Pipeline pipeline);
+    [Value] vec4 get_color();
+    float get_roughness();
+    float get_metallic();
+    float get_occlusion();
+    [Value] vec3 get_emissive();
+    Texture get_diffuse_texture();
+    Texture get_metallic_roughness_texture();
+    Texture get_normal_texture();
+    Texture get_emissive_texture();
+    Texture get_occlusion_texture();
+    float get_alpha_mask();
+    boolean get_depth_read();
+    boolean get_depth_write();
+    boolean get_use_skinning();
+    boolean get_is_2D();
+    boolean get_fragment_write();
+    eTransparencyType get_transparency_type();
+    eTopologyType get_topology_type();
+    eCullType get_cull_type();
+    eMaterialType get_type();
+    short get_priority();
+    [Const] Shader get_shader();
+    Shader get_shader_ref();
+};
+
+interface Surface {
+    void Surface();
+    void create_quad();
+};
+
+/*
+*   Scene and Nodes
+*/
+
+interface Node {
+    void Node();
+    void render();
+    void update(float delta_time);
+};
+
+interface Node3D {
+    void Node3D();
+    void render();
+    void update(float delta_time);
+
+    void translate([Const, Ref] vec3 translation);
+    void rotate(float angle, [Const, Ref] vec3 axis);
+    void rotate([Const, Ref] quat q);
+    void rotate_world([Const, Ref] quat q);
+    void scale([Const, Ref] vec3 scale);
+    // virtual void serialize(std::ofstream& binary_scene_file) override;
+    // virtual void parse(std::ifstream& binary_scene_file) override;
+    [Value] vec3 get_local_translation();
+    [Value] vec3 get_translation();
+    [Value] mat4x4 get_global_model();
+    [Value] mat4x4 get_model();
+    [Value] quat get_rotation();
+    [Ref] Transform get_transform();
+    [Value] Transform get_global_transform();
+    void set_position([Const, Ref] vec3 translation);
+    void set_rotation([Const, Ref] quat rotation);
+    void set_scale([Const, Ref] vec3 scale);
+    void set_global_transform([Const, Ref] Transform new_transform);
+    void set_transform([Const, Ref] Transform new_transform);
+    void set_transform_dirty(boolean value);
+    void set_parent(Node3D node);
+};
+Node3D implements Node;
+
+interface MeshInstance {
+    void MeshInstance();
+};
+
+interface MeshInstance3D {
+    void MeshInstance3D();
+    void render();
+    void update(float delta_time);
+    Surface get_surface(long surface_idx);
+    void set_surface_material_override(Surface surface, Material material);
+    void set_frustum_culling_enabled(boolean value);
+    void add_surface(Surface surface);
+};
+MeshInstance3D implements Node3D;
+
+interface Environment3D {
+    void Environment3D();
+    void update(float delta_time);
+};
+Environment3D implements MeshInstance3D;
+
+interface Scene {
+    void Scene();
+    void add_node(Node node, long idx);
+    // void add_nodes(const std::vector<Node*>& nodes_to_add, int idx);
+    void remove_node(Node node);
+    // void set_name(const std::string& name);
+    // std::vector<Node*>& get_nodes();
+    // const std::string& get_name() { return name; }
+    void delete_all();
+    // void serialize(const std::string& path);
+    // void parse(const std::string& path);
+    void update(float delta_time);
+    void render();
+};
+
+/*
+*	Renderer
 */
 
 interface sRendererConfiguration {
@@ -51,8 +251,13 @@ interface Renderer {
 	void Renderer([Const, Ref] sRendererConfiguration configuration);
 };
 
+interface RendererStorage {
+    static Surface get_surface(DOMString mesh_path);
+    static Shader get_shader_from_source([Const] Material material);
+};
+
 /*
-	Engine
+*	Engine
 */
 
 interface sEngineConfiguration {
@@ -69,8 +274,7 @@ interface sEngineConfiguration {
 interface Engine {
 	void Engine();
 	long initialize(Renderer renderer, [Const, Ref] sEngineConfiguration configuration);
-	//void clean();
-	//void start_loop();
-	//boolean get_wasm_module_initialized();
-	//void set_wasm_module_initialized(boolean value);
+	void set_wasm_module_initialized(boolean value);
+    static Engine get_instance();
+    Scene get_main_scene();
 };

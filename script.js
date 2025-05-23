@@ -12,8 +12,80 @@ window.App = {
 
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
 
-
     init() {
+
+        this.engine = window.engineInstance;
+
+        // Module.Engine.onFrame = () => {
+        //     console.log( "Frame" );
+        // }
+
+        const skybox = new Module.Environment3D();
+        console.log( "Skybox", skybox );
+
+        const scene = this.engine.get_main_scene();
+        scene.add_node( skybox, -1 );
+
+        Module.Engine.onRender = () => {
+            scene.render();
+        }
+
+        Module.Engine.onUpdate = ( dt ) => {
+            scene.update( dt );
+        }
+
+        // Create grid
+        {
+            const gridMaterial = new Module.Material();
+            gridMaterial.set_transparency_type( Module.ALPHA_BLEND );
+            gridMaterial.set_cull_type( Module.CULL_NONE );
+            gridMaterial.set_type( Module.MATERIAL_UNLIT );
+            // gridMaterial.set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, gridMaterial));
+            const shader = Module.RendererStorage.prototype.get_shader_from_source( gridMaterial );
+            console.log( "Shader", shader );
+
+            gridMaterial.set_shader( shader );
+            console.log( "gridMaterial", gridMaterial );
+
+            const surface = Module.RendererStorage.prototype.get_surface("quad");
+            console.log( "Surface", surface );
+
+            const grid = new Module.MeshInstance3D();
+            // grid.set_name("Grid");
+            grid.add_surface( surface );
+            grid.set_position( new Module.vec3(0.0) );
+            grid.rotate( 0.7853981633974483, new Module.vec3(1.0, 0.0, 0.0) );
+            grid.scale( new Module.vec3(10.0) );
+            grid.set_frustum_culling_enabled( false );
+            grid.set_surface_material_override( surface, gridMaterial );
+            console.log( "Grid", grid );
+
+            scene.add_node( grid, -1);
+        }
+
+        // Create box
+        {
+            const boxMaterial = new Module.Material();
+            // boxMaterial.set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, boxMaterial));
+            // const shader = Module.RendererStorage.prototype.get_shader_from_source( boxMaterial );
+            // console.log( "Shader", shader );
+
+            // boxMaterial.set_shader( shader );
+            console.log( "boxMaterial", boxMaterial );
+
+            const surface = Module.RendererStorage.prototype.get_surface("box");
+            console.log( "Surface", surface );
+
+            const box = new Module.MeshInstance3D();
+            // box.set_name("Box");
+            box.add_surface( surface );
+            box.set_position( new Module.vec3(0.0) );
+            box.scale( new Module.vec3(10.0) );
+            box.set_surface_material_override( surface, boxMaterial );
+            console.log( "Box", box );
+
+            scene.add_node( box, -1);
+        }
 
         this.initUI();
     },

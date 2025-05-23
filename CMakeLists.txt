@@ -125,7 +125,6 @@ if (EMSCRIPTEN)
         OUTPUT ${GLUE_CPP} ${GLUE_JS}
         COMMAND ${WEBIDL_BINDER} ${IDL_FILE} glue
         DEPENDS ${IDL_FILE}
-        COMMENT "Generating WebIDL bindings"
     )
 
     # Add headers wrapper to glue at the top
@@ -134,7 +133,6 @@ if (EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E cat "${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp" > ${PATCHED_GLUE_CPP}
         COMMAND ${CMAKE_COMMAND} -E cat ${GLUE_CPP} >> ${PATCHED_GLUE_CPP}
         DEPENDS ${GLUE_CPP} ${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp
-        COMMENT "Patching glue.cpp to include wrapper"
     )
 
     target_sources(${PROJECT_NAME} PRIVATE ${PATCHED_GLUE_CPP})
