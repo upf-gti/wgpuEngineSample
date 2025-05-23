@@ -17,11 +17,10 @@ window.App = {
         //     console.log( "Frame" );
         // }
 
-        const skybox = new WGE.Environment3D();
-        console.log( "Skybox", skybox );
+        const scene = this.engine.getMainScene();
 
-        const scene = this.engine.get_main_scene();
-        scene.add_node( skybox, -1 );
+        const skybox = new WGE.Environment3D();
+        scene.addNode( skybox );
 
         WGE.Engine.onRender = () => {
             scene.render();
@@ -37,40 +36,58 @@ window.App = {
         // Create grid
         {
             const gridMaterial = new WGE.Material();
-            gridMaterial.set_transparency_type( WGE.ALPHA_BLEND );
-            gridMaterial.set_cull_type( WGE.CULL_NONE );
-            gridMaterial.set_type( WGE.MATERIAL_UNLIT );
-            gridMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_grid", gridMaterial ) );
+            gridMaterial.setTransparencyType( WGE.ALPHA_BLEND );
+            gridMaterial.setCullType( WGE.CULL_NONE );
+            gridMaterial.setType( WGE.MATERIAL_UNLIT );
+            gridMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_grid", gridMaterial ) );
 
             const surface = WGE.RendererStorage.getSurface("quad");
             const grid = new WGE.MeshInstance3D();
             // grid.set_name("Grid");
-            grid.add_surface( surface );
-            grid.set_position( new WGE.vec3(0.0) );
+            grid.addSurface( surface );
+            grid.setPosition( new WGE.vec3(0.0) );
             grid.rotate( 1.5708, new WGE.vec3(1.0, 0.0, 0.0) );
             grid.scale( new WGE.vec3(10.0) );
-            grid.set_frustum_culling_enabled( false );
-            grid.set_surface_material_override( surface, gridMaterial );
+            grid.setFrustumCullingEnabled( false );
+            grid.setSurfaceMaterialOverride( surface, gridMaterial );
 
-            scene.add_node( grid, -1);
+            scene.addNode( grid );
         }
 
         // Create box
         {
             const boxMaterial = new WGE.Material();
-            boxMaterial.set_color(new WGE.vec4(1.0, 0.0, 0.0, 0.50));
-            // By now this needs an await, because we ned to wait for the texture to be loaded in JS
-            boxMaterial.set_diffuse_texture( await WGE.RendererStorage.getTexture( "wall.png" ) );
-            boxMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_forward", boxMaterial ) );
+            boxMaterial.setColor(new WGE.vec4(0.3, 0.2, 0.3, 0.50));
+
+            // By now we need to wait for the texture to be loaded in JS
+            // Method 1: Await
+            const texture = await WGE.RendererStorage.getTexture( "wall.png" );
+            boxMaterial.setDiffuseTexture( texture );
+            boxMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_forward", boxMaterial ) );
+            
+            // Method 2: Use callback
+            // WGE.RendererStorage.getTexture( "wall.png", 0, (texture) => {
+            //     boxMaterial.setDiffuseTexture( texture );
+            //     boxMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_forward", boxMaterial ) );
+            // });
 
             const surface = WGE.RendererStorage.getSurface("box");
             const box = new WGE.MeshInstance3D();
             // box.set_name("Box");
-            box.add_surface( surface );
-            box.set_position( new WGE.vec3(0.0) );
-            box.set_surface_material_override( surface, boxMaterial );
+            box.addSurface( surface );
+            box.setPosition( new WGE.vec3(0.0) );
+            box.setSurfaceMaterialOverride( surface, boxMaterial );
 
-            scene.add_node( box, -1);
+            scene.addNode( box );
+        }
+
+        // Create lights
+        {
+            const directionalLight = new WGE.DirectionalLight3D();
+            directionalLight.setColor( new WGE.vec3( 1.0, 0.0, 0.0 ) );
+            directionalLight.setIntensity( 5.0 );
+            directionalLight.rotate( 1.5708, new WGE.vec3(0.0, 1.0, 0.0) );
+            scene.addNode( directionalLight );
         }
 
         this.initUI();

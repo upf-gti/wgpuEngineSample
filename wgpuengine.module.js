@@ -4,7 +4,7 @@ const wgpuEngine = {
 };
 
 // Add defaults to namespace
-const skipInclude = [ "addRunDependency", "BindingError", "calledRun", "castObject", "compare", "count_emval_handles", "createContext", "dataFileDownloads", "expectedDataFileDownloads", 
+const skipInclude = [ "addRunDependency", "BindingError", "calledRun", "castObject", "compare", "count_emval_handles", "createContext", "dataFileDownloads", "destroy", "expectedDataFileDownloads", 
     "getCache", "getClass", "getPointer", "getUserMedia", "pauseMainLoop", "preloadResults", "preRun", "postRun", "resumeMainLoop", "requestAnimationFrame", "removeRunDependency", "requestFullscreen", 
     "setCanvasSize", "totalDependencies", "VoidPtr", "WrapperObject", "wrapPointer", "NULL" ];
 
@@ -19,23 +19,31 @@ for( const key in Module )
 // Custom wrappers for some classes
 
 const RendererStorage = {
-    getShader: function ( shaderName, material ) {
+    getDefaultShader: function ( shaderName, material ) {
         return Module.RendererStorage.prototype.get_shader_from_name( shaderName, material );
     },
     getSurface: function ( surfaceName ) {
         return Module.RendererStorage.prototype.get_surface( surfaceName );
     },
-    getTexture: async function ( textureName, textureFlags ) {
-        const data = await wgpuEngine._requestBinary( textureName ).catch(( err ) => console.error( err ) );
-        wgpuEngine._fileStore( textureName, data );
-        return Module.RendererStorage.prototype.get_texture( textureName, textureFlags );
+    getTexture: async function ( textureName, textureFlags, onLoad ) {
+        return await wgpuEngine._requestBinary( textureName ).then( data => {
+            wgpuEngine._fileStore( textureName, data );
+            const texture = Module.RendererStorage.prototype.get_texture( textureName, textureFlags );
+            setTimeout( () => { if( onLoad ) onLoad( texture ) }, 0 );
+            return texture;
+        }).catch(( err ) => console.error( err ) );
     },
 }
 
 wgpuEngine.RendererStorage = RendererStorage;
 
-wgpuEngine.destroy = function () {
-    // ...
+/*
+* Scene
+*/
+
+wgpuEngine.Scene.prototype.addNode = function( node, idx = -1 )
+{
+    this.add_node( node, idx );
 }
 
 // Utility functions
