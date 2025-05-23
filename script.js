@@ -1,88 +1,82 @@
 
 import { LX } from 'lexgui';
+import { wgpuEngine as WGE } from './wgpuengine.module.js';
 
 window.App = {
 
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
 
-    init() {
+    async init() {
 
         this.engine = window.engineInstance;
 
-        // Module.Engine.onFrame = () => {
+        console.log(WGE);
+        window.WGE = WGE;
+
+        // WGE.Engine.onFrame = () => {
         //     console.log( "Frame" );
         // }
 
-        const skybox = new Module.Environment3D();
+        const skybox = new WGE.Environment3D();
         console.log( "Skybox", skybox );
 
         const scene = this.engine.get_main_scene();
         scene.add_node( skybox, -1 );
 
-        Module.Engine.onRender = () => {
+        WGE.Engine.onRender = () => {
             scene.render();
         }
 
-        Module.Engine.onUpdate = ( dt ) => {
+        WGE.Engine.onUpdate = ( dt ) => {
             scene.update( dt );
+
+            if( this.stats )
+                this.stats.update();
         }
 
         // Create grid
         {
-            const gridMaterial = new Module.Material();
-            gridMaterial.set_transparency_type( Module.ALPHA_BLEND );
-            gridMaterial.set_cull_type( Module.CULL_NONE );
-            gridMaterial.set_type( Module.MATERIAL_UNLIT );
-            const shader = Module.RendererStorage.prototype.get_shader_from_name( "mesh_grid", gridMaterial );
-            console.log( "Shader", shader );
-            gridMaterial.set_shader( shader );
-            console.log( "gridMaterial", gridMaterial );
+            const gridMaterial = new WGE.Material();
+            gridMaterial.set_transparency_type( WGE.ALPHA_BLEND );
+            gridMaterial.set_cull_type( WGE.CULL_NONE );
+            gridMaterial.set_type( WGE.MATERIAL_UNLIT );
+            gridMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_grid", gridMaterial ) );
 
-            const surface = Module.RendererStorage.prototype.get_surface("quad");
-            console.log( "Surface", surface );
+            const surface = WGE.RendererStorage.getSurface("quad");
 
-            const grid = new Module.MeshInstance3D();
+            const grid = new WGE.MeshInstance3D();
             // grid.set_name("Grid");
             grid.add_surface( surface );
-            grid.set_position( new Module.vec3(0.0) );
-            grid.rotate( 1.5708, new Module.vec3(1.0, 0.0, 0.0) );
-            grid.scale( new Module.vec3(10.0) );
+            grid.set_position( new WGE.vec3(0.0) );
+            grid.rotate( 1.5708, new WGE.vec3(1.0, 0.0, 0.0) );
+            grid.scale( new WGE.vec3(10.0) );
             grid.set_frustum_culling_enabled( false );
             grid.set_surface_material_override( surface, gridMaterial );
-            console.log( "Grid", grid );
 
             scene.add_node( grid, -1);
         }
 
         // Create box
         {
-            const boxMaterial = new Module.Material();
-            boxMaterial.set_color(new Module.vec4(1.0, 0.0, 0.0, 0.50));
+            const boxMaterial = new WGE.Material();
+            boxMaterial.set_color(new WGE.vec4(1.0, 0.0, 0.0, 0.50));
 
             // Load texture from file
+            const filename = "wall.png";
             {
-                const filename = "wall.png";
-                LX.requestBinary( filename, ( data ) => {
-                    this._fileStore( filename, data );
-                    boxMaterial.set_diffuse_texture( Module.RendererStorage.prototype.get_texture( filename ) );
-                }, (error) => { console.log(error) } );
+                const data = await this._requestBinary( filename ).catch(( err ) => console.error( err ) );
+                this._fileStore( filename, data );
             }
 
-            const shader = Module.RendererStorage.prototype.get_shader_from_name( "mesh_forward", boxMaterial );
-            console.log( "Shader", shader );
-            boxMaterial.set_shader( shader );
-            console.log( "boxMaterial", boxMaterial );
+            boxMaterial.set_diffuse_texture( WGE.RendererStorage.getTexture( filename ) );
+            boxMaterial.set_shader( WGE.RendererStorage.getShader( "mesh_forward", boxMaterial ) );
 
-            const surface = Module.RendererStorage.prototype.get_surface("box");
-            console.log( "Surface", surface );
-
-            const box = new Module.MeshInstance3D();
+            const surface = WGE.RendererStorage.getSurface("box");
+            const box = new WGE.MeshInstance3D();
             // box.set_name("Box");
             box.add_surface( surface );
-            box.set_position( new Module.vec3(0.0) );
-            // box.scale( new Module.vec3(10.0) );
+            box.set_position( new WGE.vec3(0.0) );
             box.set_surface_material_override( surface, boxMaterial );
-            console.log( "Box", box );
 
             scene.add_node( box, -1);
         }
@@ -126,6 +120,10 @@ window.App = {
         this.modal.hidden = true;
 
         document.body.appendChild( this.modal );
+
+        this.stats = new Stats();
+        this.stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+		document.body.appendChild( this.stats.dom );
     },
 
     getExtension( filename ) {
@@ -199,6 +197,42 @@ window.App = {
         let stream = FS.open( filename, 'w+' );
         FS.write( stream, data, 0, data.length, 0 );
         FS.close( stream );
+    },
+
+    _requestBinary( url, nocache ) {
+
+        return new Promise((resolve, reject) => {
+
+            const dataType = "arraybuffer";
+            const mimeType = "application/octet-stream";
+
+            //regular case, use AJAX call
+            var xhr = new XMLHttpRequest();
+            xhr.open( 'GET', url, true );
+            xhr.responseType = dataType;
+            xhr.overrideMimeType( mimeType );
+
+            if( nocache )
+                xhr.setRequestHeader('Cache-Control', 'no-cache');
+
+            xhr.onload = function(load)
+            {
+                var response = this.response;
+                if( this.status != 200)
+                {
+                    var err = "Error " + this.status;
+                    reject(err);
+                    return;
+                }
+                resolve( response );
+            };
+            xhr.onerror = function(err) {
+                reject(err);
+            };
+
+            xhr.send();
+            return xhr;
+        });
     }
 };
 
