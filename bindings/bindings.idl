@@ -251,9 +251,18 @@ interface Renderer {
 	void Renderer([Const, Ref] sRendererConfiguration configuration);
 };
 
+enum TextureStorageFlags {
+    "TEXTURE_STORAGE_NONE",
+    "TEXTURE_STORAGE_SRGB",
+    "TEXTURE_STORAGE_KEEP_MEMORY",
+    "TEXTURE_STORAGE_STORE_DATA",
+    "TEXTURE_STORAGE_UI"
+};
+
 interface RendererStorage {
     static Surface get_surface(DOMString mesh_path);
-    static Shader get_shader_from_source([Const] Material material);
+    static Texture get_texture(DOMString shader_name, TextureStorageFlags flags);
+    static Shader get_shader_from_name(DOMString shader_name, [Const] Material material);
 };
 
 /*

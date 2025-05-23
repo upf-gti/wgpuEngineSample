@@ -1,12 +1,5 @@
 
-function _processVector( vector )
-{
-    var array = [];
-    for( var i = 0; i < vector.size(); ++i )
-        array.push( vector.get(i) );
-
-    return array;
-}
+import { LX } from 'lexgui';
 
 window.App = {
 
@@ -40,10 +33,8 @@ window.App = {
             gridMaterial.set_transparency_type( Module.ALPHA_BLEND );
             gridMaterial.set_cull_type( Module.CULL_NONE );
             gridMaterial.set_type( Module.MATERIAL_UNLIT );
-            // gridMaterial.set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, gridMaterial));
-            const shader = Module.RendererStorage.prototype.get_shader_from_source( gridMaterial );
+            const shader = Module.RendererStorage.prototype.get_shader_from_name( "mesh_grid", gridMaterial );
             console.log( "Shader", shader );
-
             gridMaterial.set_shader( shader );
             console.log( "gridMaterial", gridMaterial );
 
@@ -54,7 +45,7 @@ window.App = {
             // grid.set_name("Grid");
             grid.add_surface( surface );
             grid.set_position( new Module.vec3(0.0) );
-            grid.rotate( 0.7853981633974483, new Module.vec3(1.0, 0.0, 0.0) );
+            grid.rotate( 1.5708, new Module.vec3(1.0, 0.0, 0.0) );
             grid.scale( new Module.vec3(10.0) );
             grid.set_frustum_culling_enabled( false );
             grid.set_surface_material_override( surface, gridMaterial );
@@ -66,11 +57,20 @@ window.App = {
         // Create box
         {
             const boxMaterial = new Module.Material();
-            // boxMaterial.set_shader(RendererStorage::get_shader_from_source(shaders::mesh_grid::source, shaders::mesh_grid::path, shaders::mesh_grid::libraries, boxMaterial));
-            // const shader = Module.RendererStorage.prototype.get_shader_from_source( boxMaterial );
-            // console.log( "Shader", shader );
+            boxMaterial.set_color(new Module.vec4(1.0, 0.0, 0.0, 0.50));
 
-            // boxMaterial.set_shader( shader );
+            // Load texture from file
+            {
+                const filename = "wall.png";
+                LX.requestBinary( filename, ( data ) => {
+                    this._fileStore( filename, data );
+                    boxMaterial.set_diffuse_texture( Module.RendererStorage.prototype.get_texture( filename ) );
+                }, (error) => { console.log(error) } );
+            }
+
+            const shader = Module.RendererStorage.prototype.get_shader_from_name( "mesh_forward", boxMaterial );
+            console.log( "Shader", shader );
+            boxMaterial.set_shader( shader );
             console.log( "boxMaterial", boxMaterial );
 
             const surface = Module.RendererStorage.prototype.get_surface("box");
@@ -80,7 +80,7 @@ window.App = {
             // box.set_name("Box");
             box.add_surface( surface );
             box.set_position( new Module.vec3(0.0) );
-            box.scale( new Module.vec3(10.0) );
+            // box.scale( new Module.vec3(10.0) );
             box.set_surface_material_override( surface, boxMaterial );
             console.log( "Box", box );
 
