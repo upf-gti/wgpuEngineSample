@@ -14,11 +14,14 @@
 #include "graphics/material.h"
 
 #include "framework/math/transform.h"
+#include "framework/math/math_utils.h"
 #include "framework/nodes/environment_3d.h"
 #include "framework/nodes/directional_light_3d.h"
 #include "framework/nodes/omni_light_3d.h"
 #include "framework/nodes/spot_light_3d.h"
 #include "framework/parsers/parse_gltf.h"
+#include "framework/camera/flyover_camera.h"
+#include "framework/camera/orbit_camera.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include "glm/gtx/quaternion.hpp"
@@ -29,6 +32,7 @@
 #include <emscripten/bind.h>
 
 using namespace emscripten;
+
 
 // Binding code
 
@@ -73,13 +77,68 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     class_<Transform>("Transform")
         .constructor<>();
 
+    function("radians", &radians);
+    function("degrees", &degrees);
+
     /*
-    *	Material and Surface
+    *	Camera
     */
 
     enum_<eCameraType>("CameraType")
         .value("CAMERA_ORBIT", CAMERA_ORBIT)
         .value("CAMERA_FLYOVER", CAMERA_FLYOVER);
+
+    enum_<Camera::eCameraProjectionType>("CameraProjectionType")
+        .value("CAMERA_PERSPECTIVE", Camera::eCameraProjectionType::PERSPECTIVE)
+        .value("CAMERA_ORTHOGRAPHIC", Camera::eCameraProjectionType::ORTHOGRAPHIC);
+
+    class_<Camera>("Camera")
+        .function("update", &Camera::update)
+        .function("updateViewMatrix", &Camera::update_view_matrix)
+        .function("updateProjectionMatrix", &Camera::update_projection_matrix)
+        .function("updateViewProjectionMatrix", &Camera::update_view_projection_matrix)
+        .function("lookAt", &Camera::look_at)
+        .function("screenToRay", &Camera::screen_to_ray)
+        .function("setPerspective", &Camera::set_perspective)
+        .function("setOrthographic", &Camera::set_orthographic)
+        .function("setView", &Camera::set_view)
+        .function("setProjection", &Camera::set_projection)
+        .function("setViewProjection", &Camera::set_view_projection)
+        .function("setEye", &Camera::set_eye)
+        .function("setCenter", &Camera::set_center)
+        .function("setSpeed", &Camera::set_speed)
+        .function("setMouseSensitivity", &Camera::set_mouse_sensitivity)
+        .function("getLocalVector", &Camera::get_local_vector)
+        .function("getEye", &Camera::get_eye)
+        .function("getCenter", &Camera::get_center)
+        .function("getUp", &Camera::get_up)
+        .function("getFov", &Camera::get_fov)
+        .function("getAspect", &Camera::get_aspect)
+        .function("getNear", &Camera::get_near)
+        .function("getFar", &Camera::get_far)
+        .function("getSpeed", &Camera::get_speed)
+        .function("getView", &Camera::get_view)
+        .function("getProjection", &Camera::get_projection)
+        .function("getViewProjection", &Camera::get_view_projection);
+
+    class_<Camera3D, base<Camera>>("Camera3D")
+        .function("update", &Camera3D::update)
+        .function("lookAt", &Camera3D::look_at)
+        .function("applyMovement", &Camera3D::apply_movement)
+        .function("lookAtNode", &Camera3D::look_at_node, allow_raw_pointers());
+
+    class_<FlyoverCamera, base<Camera3D>>("FlyoverCamera")
+        .constructor<>()
+        .function("update", &FlyoverCamera::update);
+
+    class_<OrbitCamera, base<Camera3D>>("OrbitCamera")
+        .constructor<>()
+        .function("update", &OrbitCamera::update)
+        .function("lookAt", &OrbitCamera::look_at);
+
+    /*
+    *	Material and Surface
+    */
 
     enum_<eMaterialType>("MaterialType")
         .value("MATERIAL_PBR", MATERIAL_PBR)
@@ -212,7 +271,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Environment3D, base<MeshInstance3D>>("Environment3D")
         .constructor<>()
-        .function("update", &Environment3D::update);
+        .function("update", &Environment3D::update)
+        .function("_setTexture", &Environment3D::set_texture);
 
     class_<Light3D, base<Node3D>>("Light3D")
         .function("render", &Light3D::render)

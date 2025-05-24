@@ -27,6 +27,13 @@ wgpuEngine.RendererStorage.getTexture = async function( textureName, textureFlag
     }).catch(( err ) => console.error( err ) );
 }
 
+wgpuEngine.Environment3D.prototype.setTexture = async function( textureName ) {
+    await wgpuEngine._requestBinary( textureName ).then( data => {
+        wgpuEngine._fileStore( textureName, data );
+        this._setTexture( textureName );
+    }).catch(( err ) => console.error( err ) );
+}
+
 wgpuEngine.parseGltf = async function( glTFName, nodes, onLoad ) {
     return await wgpuEngine._requestBinary( glTFName ).then( data => {
         wgpuEngine._fileStore( glTFName, data );

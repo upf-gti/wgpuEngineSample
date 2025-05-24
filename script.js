@@ -20,6 +20,7 @@ window.App = {
         const scene = this.engine.getMainScene();
 
         const skybox = new WGE.Environment3D();
+        await skybox.setTexture( "test.hdr" );
         scene.addNode( skybox, -1 );
 
         WGE.Engine.onRender = () => {
@@ -46,11 +47,10 @@ window.App = {
             grid.setName( "Grid" );
             grid.addSurface( surface );
             grid.setPosition( new WGE.vec3(0.0) );
-            grid.rotate( 1.5708, new WGE.vec3(1.0, 0.0, 0.0) );
+            grid.rotate( WGE.radians( 90.0 ), new WGE.vec3(1.0, 0.0, 0.0) );
             grid.scale( new WGE.vec3(10.0) );
             grid.setFrustumCullingEnabled( false );
             grid.setSurfaceMaterialOverride( surface, gridMaterial );
-
             scene.addNode( grid, -1 );
         }
 
@@ -77,7 +77,6 @@ window.App = {
             box.addSurface( surface );
             box.setPosition( new WGE.vec3(1.0, 0, -10.0) );
             box.setSurfaceMaterialOverride( surface, boxMaterial );
-
             scene.addNode( box, -1 );
         }
 
@@ -98,7 +97,7 @@ window.App = {
             const directionalLight = new WGE.DirectionalLight3D();
             directionalLight.setColor( new WGE.vec3( 1.0, 0.0, 0.0 ) );
             directionalLight.setIntensity( 5.0 );
-            directionalLight.rotate( 1.5708, new WGE.vec3(0.0, 1.0, 0.0) );
+            directionalLight.rotate( WGE.radians( 90.0 ), new WGE.vec3(0.0, 1.0, 0.0) );
             scene.addNode( directionalLight, -1);
         }
 
