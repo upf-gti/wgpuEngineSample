@@ -20,7 +20,7 @@ window.App = {
         const scene = this.engine.getMainScene();
 
         const skybox = new WGE.Environment3D();
-        scene.addNode( skybox );
+        scene.addNode( skybox, -1 );
 
         WGE.Engine.onRender = () => {
             scene.render();
@@ -36,14 +36,14 @@ window.App = {
         // Create grid
         {
             const gridMaterial = new WGE.Material();
-            gridMaterial.setTransparencyType( WGE.ALPHA_BLEND );
-            gridMaterial.setCullType( WGE.CULL_NONE );
-            gridMaterial.setType( WGE.MATERIAL_UNLIT );
-            gridMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_grid", gridMaterial ) );
+            gridMaterial.setTransparencyType( WGE.TransparencyType.ALPHA_BLEND );
+            gridMaterial.setCullType( WGE.CullType.CULL_NONE );
+            gridMaterial.setType( WGE.MaterialType.MATERIAL_UNLIT );
+            gridMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_grid", gridMaterial ) );
 
-            const surface = WGE.RendererStorage.getSurface("quad");
+            const surface = WGE.RendererStorage.getSurface( "quad" );
             const grid = new WGE.MeshInstance3D();
-            // grid.set_name("Grid");
+            grid.setName( "Grid" );
             grid.addSurface( surface );
             grid.setPosition( new WGE.vec3(0.0) );
             grid.rotate( 1.5708, new WGE.vec3(1.0, 0.0, 0.0) );
@@ -51,34 +51,46 @@ window.App = {
             grid.setFrustumCullingEnabled( false );
             grid.setSurfaceMaterialOverride( surface, gridMaterial );
 
-            scene.addNode( grid );
+            scene.addNode( grid, -1 );
         }
 
         // Create box
         {
             const boxMaterial = new WGE.Material();
-            boxMaterial.setColor(new WGE.vec4(0.3, 0.2, 0.3, 0.50));
+            boxMaterial.setColor( new WGE.vec4(0.3, 0.2, 0.3, 0.50) );
 
             // By now we need to wait for the texture to be loaded in JS
             // Method 1: Await
             const texture = await WGE.RendererStorage.getTexture( "wall.png" );
             boxMaterial.setDiffuseTexture( texture );
-            boxMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_forward", boxMaterial ) );
+            boxMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", boxMaterial ) );
             
             // Method 2: Use callback
             // WGE.RendererStorage.getTexture( "wall.png", 0, (texture) => {
             //     boxMaterial.setDiffuseTexture( texture );
-            //     boxMaterial.setShader( WGE.RendererStorage.getDefaultShader( "mesh_forward", boxMaterial ) );
+            //     boxMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", boxMaterial ) );
             // });
 
             const surface = WGE.RendererStorage.getSurface("box");
             const box = new WGE.MeshInstance3D();
-            // box.set_name("Box");
+            box.setName( "Box" );
             box.addSurface( surface );
-            box.setPosition( new WGE.vec3(0.0) );
+            box.setPosition( new WGE.vec3(1.0, 0, -10.0) );
             box.setSurfaceMaterialOverride( surface, boxMaterial );
 
-            scene.addNode( box );
+            scene.addNode( box, -1 );
+        }
+
+        // Parse a glTF file
+        {
+            // Method 1: Await
+            // const nodes = await WGE.parseGltf( "right_controller.glb" );
+            // scene.addNodes( nodes, -1 );
+
+            // Method 2: Use callback
+            const nodes = WGE.parseGltf( "right_controller.glb", null, ( nodes ) => {
+                scene.addNodes( nodes, -1 );
+            });
         }
 
         // Create lights
@@ -87,7 +99,7 @@ window.App = {
             directionalLight.setColor( new WGE.vec3( 1.0, 0.0, 0.0 ) );
             directionalLight.setIntensity( 5.0 );
             directionalLight.rotate( 1.5708, new WGE.vec3(0.0, 1.0, 0.0) );
-            scene.addNode( directionalLight );
+            scene.addNode( directionalLight, -1);
         }
 
         this.initUI();

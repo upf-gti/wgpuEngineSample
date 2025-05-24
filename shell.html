@@ -45,7 +45,7 @@
 
         async function onEnginePreInitialized() {
 
-            await Promise.resolve(Module.Engine.prototype.getInstance()).then(result => {
+            await Promise.resolve(Module.Engine.getInstance()).then(result => {
 
                 if (!result) {
                     console.error("Module Instance is null");

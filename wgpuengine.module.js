@@ -18,32 +18,24 @@ for( const key in Module )
 
 // Custom wrappers for some classes
 
-const RendererStorage = {
-    getDefaultShader: function ( shaderName, material ) {
-        return Module.RendererStorage.prototype.get_shader_from_name( shaderName, material );
-    },
-    getSurface: function ( surfaceName ) {
-        return Module.RendererStorage.prototype.get_surface( surfaceName );
-    },
-    getTexture: async function ( textureName, textureFlags, onLoad ) {
-        return await wgpuEngine._requestBinary( textureName ).then( data => {
-            wgpuEngine._fileStore( textureName, data );
-            const texture = Module.RendererStorage.prototype.get_texture( textureName, textureFlags );
-            setTimeout( () => { if( onLoad ) onLoad( texture ) }, 0 );
-            return texture;
-        }).catch(( err ) => console.error( err ) );
-    },
+wgpuEngine.RendererStorage.getTexture = async function( textureName, textureFlags, onLoad ) {
+    return await wgpuEngine._requestBinary( textureName ).then( data => {
+        wgpuEngine._fileStore( textureName, data );
+        const texture = Module.RendererStorage._getTexture( textureName, textureFlags ?? wgpuEngine.TextureStorageFlags.TEXTURE_STORAGE_NONE );
+        if( onLoad ) onLoad( texture );
+        return texture;
+    }).catch(( err ) => console.error( err ) );
 }
 
-wgpuEngine.RendererStorage = RendererStorage;
-
-/*
-* Scene
-*/
-
-wgpuEngine.Scene.prototype.addNode = function( node, idx = -1 )
-{
-    this.add_node( node, idx );
+wgpuEngine.parseGltf = async function( glTFName, nodes, onLoad ) {
+    return await wgpuEngine._requestBinary( glTFName ).then( data => {
+        wgpuEngine._fileStore( glTFName, data );
+        nodes = nodes ?? new wgpuEngine.VectorNodePtr();
+        const parser = new wgpuEngine.GltfParser();
+        parser.parse( glTFName, nodes );
+        if( onLoad ) onLoad( nodes );
+        return nodes;
+    }).catch(( err ) => console.error( err ) );
 }
 
 // Utility functions

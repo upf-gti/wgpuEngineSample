@@ -112,30 +112,31 @@ if (EMSCRIPTEN)
     # See https://github.com/kainino0x/webgpu-cross-platform-demo/tree/dawnwasm for a sample setup
 
     # WebIDL bindings
-    set(IDL_FILE ${SAMPLE_PROJECT_DIR_ROOT}/bindings/bindings.idl)
-    set(GLUE_CPP ${CMAKE_BINARY_DIR}/glue.cpp)
-    set(GLUE_JS  ${CMAKE_BINARY_DIR}/glue.js)
-    set(PATCHED_GLUE_CPP ${CMAKE_BINARY_DIR}/glue_patched.cpp)
+    #set(IDL_FILE ${SAMPLE_PROJECT_DIR_ROOT}/bindings/bindings.idl)
+    #set(GLUE_CPP ${CMAKE_BINARY_DIR}/glue.cpp)
+    #set(GLUE_JS  ${CMAKE_BINARY_DIR}/glue.js)
+    #set(PATCHED_GLUE_CPP ${CMAKE_BINARY_DIR}/glue_patched.cpp)
 
-    find_program(WEBIDL_BINDER webidl_binder PATHS "$ENV{EMSDK}/upstream/emscripten/tools")
+    #find_program(WEBIDL_BINDER webidl_binder PATHS "$ENV{EMSDK}/upstream/emscripten/tools")
     # message(STATUS "WEBIDL_BINDER path: ${WEBIDL_BINDER}")
 
     # Generate glue bindings
-    add_custom_command(
-        OUTPUT ${GLUE_CPP} ${GLUE_JS}
-        COMMAND ${WEBIDL_BINDER} ${IDL_FILE} glue
-        DEPENDS ${IDL_FILE}
-    )
+    #add_custom_command(
+    #    OUTPUT ${GLUE_CPP} ${GLUE_JS}
+    #    COMMAND ${WEBIDL_BINDER} ${IDL_FILE} glue
+    #    DEPENDS ${IDL_FILE}
+    #)
 
     # Add headers wrapper to glue at the top
-    add_custom_command(
-        OUTPUT ${PATCHED_GLUE_CPP}
-        COMMAND ${CMAKE_COMMAND} -E cat "${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp" > ${PATCHED_GLUE_CPP}
-        COMMAND ${CMAKE_COMMAND} -E cat ${GLUE_CPP} >> ${PATCHED_GLUE_CPP}
-        DEPENDS ${GLUE_CPP} ${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp
-    )
+    #add_custom_command(
+    #    OUTPUT ${PATCHED_GLUE_CPP}
+    #    COMMAND ${CMAKE_COMMAND} -E cat "${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp" > ${PATCHED_GLUE_CPP}
+    #    COMMAND ${CMAKE_COMMAND} -E cat ${GLUE_CPP} >> ${PATCHED_GLUE_CPP}
+    #    DEPENDS ${GLUE_CPP} ${SAMPLE_PROJECT_DIR_ROOT}/bindings/wrapper.cpp
+    #)
 
-    target_sources(${PROJECT_NAME} PRIVATE ${PATCHED_GLUE_CPP})
+    #target_sources(${PROJECT_NAME} PRIVATE ${PATCHED_GLUE_CPP})
+    target_sources(${PROJECT_NAME} PRIVATE ${SAMPLE_PROJECT_DIR_ROOT}/bindings/embind_bindings.cpp)
 
     target_link_options(${PROJECT_NAME} PRIVATE
 
@@ -166,9 +167,9 @@ if (EMSCRIPTEN)
         #-sERROR_ON_WASM_CHANGES_AFTER_LINK
         #-sWASM=0
         # For faster debug builds
-        # -O1
+        -O1
         # ------------
-        --post-js "${CMAKE_BINARY_DIR}/glue.js"
+        #--post-js "${CMAKE_BINARY_DIR}/glue.js"
         --shell-file "${SAMPLE_PROJECT_DIR_ROOT}/${SHELL_FILE}"
         --preload-file "${SAMPLE_PROJECT_DIR_ROOT}/data@/data"
 	)
