@@ -26,7 +26,7 @@ wgpuEngine.RendererStorage.getTexture = async function( texturePath, textureFlag
         const texture = Module.RendererStorage._getTexture( textureFilePath, textureFlags ?? wgpuEngine.TextureStorageFlags.TEXTURE_STORAGE_NONE );
         if( onLoad ) onLoad( texture );
         return texture;
-    }).catch(( err ) => console.error( err ) );
+    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.Environment3D.prototype.setTexture = async function( texturePath ) {
@@ -34,7 +34,7 @@ wgpuEngine.Environment3D.prototype.setTexture = async function( texturePath ) {
     await wgpuEngine._requestBinary( texturePath ).then( data => {
         wgpuEngine._fileStore( textureFilePath, data );
         this._setTexture( textureFilePath );
-    }).catch(( err ) => console.error( err ) );
+    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
@@ -46,7 +46,7 @@ wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
         parser.parse( gltfFilePath, nodes );
         if( onLoad ) onLoad( nodes );
         return nodes;
-    }).catch(( err ) => console.error( err ) );
+    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
@@ -56,7 +56,7 @@ wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
         const meshInstance3D = new Module._parseObj( objPath, createAABB );
         if( onLoad ) onLoad( meshInstance3D );
         return meshInstance3D;
-    }).catch(( err ) => console.error( err ) );
+    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 // Utility functions
@@ -69,6 +69,19 @@ wgpuEngine._getFilename = function( filename )
     }
     // Return the last part of the path
     return filename.substring( filename.lastIndexOf( '/' ) + 1 );
+}
+
+wgpuEngine._getCurrentFunctionName = function()
+{
+    const err = new Error();
+    const stack = err.stack?.split('\n');
+
+    if (stack && stack.length >= 3) {
+        const match = stack[3].match(/at (.*?) \(/);
+        return match ? match[1] : 'anonymous';
+    }
+
+    return 'unknown';
 }
 
 wgpuEngine._fileStore = function( filename, buffer ) {
