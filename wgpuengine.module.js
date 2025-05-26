@@ -4,9 +4,10 @@ const wgpuEngine = {
 };
 
 // Add defaults to namespace
-const skipInclude = [ "addRunDependency", "BindingError", "calledRun", "castObject", "compare", "count_emval_handles", "createContext", "dataFileDownloads", "destroy", "expectedDataFileDownloads", 
-    "getCache", "getClass", "getPointer", "getUserMedia", "pauseMainLoop", "preloadResults", "preRun", "postRun", "resumeMainLoop", "requestAnimationFrame", "removeRunDependency", "requestFullscreen", 
-    "setCanvasSize", "totalDependencies", "VoidPtr", "WrapperObject", "wrapPointer", "NULL" ];
+const skipInclude = [ "addRunDependency", "BindingError", "calledRun", "castObject", "compare", "count_emval_handles", "createContext", "dataFileDownloads",
+    "destroy", "expectedDataFileDownloads", "getCache", "getClass", "getPointer", "getUserMedia", "InternalError", "pauseMainLoop", "preloadResults", "preRun", 
+    "postRun", "resumeMainLoop", "requestAnimationFrame", "removeRunDependency", "requestFullscreen", "setCanvasSize", "totalDependencies", "VoidPtr", "WrapperObject",
+    "wrapPointer", "NULL" ];
 
 for( const key in Module )
 {
