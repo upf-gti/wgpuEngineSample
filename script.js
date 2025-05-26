@@ -96,7 +96,7 @@ window.App = {
             // scene.addNodes( nodes, -1 );
 
             // Method 2: Use callback
-            const nodes = WGE.parseGltf( "right_controller.glb", null, ( nodes ) => {
+            const nodes = WGE.parseGltf( "https://threejs.org/examples/models/gltf/Soldier.glb", null, ( nodes ) => {
                 scene.addNodes( nodes, -1 );
             });
         }

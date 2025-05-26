@@ -19,34 +19,38 @@ for( const key in Module )
 
 // Custom wrappers for some classes
 
-wgpuEngine.RendererStorage.getTexture = async function( textureName, textureFlags, onLoad ) {
-    return await wgpuEngine._requestBinary( textureName ).then( data => {
-        wgpuEngine._fileStore( textureName, data );
-        const texture = Module.RendererStorage._getTexture( textureName, textureFlags ?? wgpuEngine.TextureStorageFlags.TEXTURE_STORAGE_NONE );
+wgpuEngine.RendererStorage.getTexture = async function( texturePath, textureFlags, onLoad ) {
+    const textureFilePath = wgpuEngine._getFilename( texturePath );
+    return await wgpuEngine._requestBinary( texturePath ).then( data => {
+        wgpuEngine._fileStore( textureFilePath, data );
+        const texture = Module.RendererStorage._getTexture( textureFilePath, textureFlags ?? wgpuEngine.TextureStorageFlags.TEXTURE_STORAGE_NONE );
         if( onLoad ) onLoad( texture );
         return texture;
     }).catch(( err ) => console.error( err ) );
 }
 
-wgpuEngine.Environment3D.prototype.setTexture = async function( textureName ) {
-    await wgpuEngine._requestBinary( textureName ).then( data => {
-        wgpuEngine._fileStore( textureName, data );
-        this._setTexture( textureName );
+wgpuEngine.Environment3D.prototype.setTexture = async function( texturePath ) {
+    const textureFilePath = wgpuEngine._getFilename( texturePath );
+    await wgpuEngine._requestBinary( texturePath ).then( data => {
+        wgpuEngine._fileStore( textureFilePath, data );
+        this._setTexture( textureFilePath );
     }).catch(( err ) => console.error( err ) );
 }
 
 wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
+    const gltfFilePath = wgpuEngine._getFilename( gltfPath );
     return await wgpuEngine._requestBinary( gltfPath ).then( data => {
-        wgpuEngine._fileStore( gltfPath, data );
+        wgpuEngine._fileStore( gltfFilePath, data );
         nodes = nodes ?? new wgpuEngine.VectorNodePtr();
         const parser = new wgpuEngine.GltfParser();
-        parser.parse( gltfPath, nodes );
+        parser.parse( gltfFilePath, nodes );
         if( onLoad ) onLoad( nodes );
         return nodes;
     }).catch(( err ) => console.error( err ) );
 }
 
 wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
+    objPath = wgpuEngine._getFilename( objPath );
     return await wgpuEngine._requestBinary( objPath ).then( data => {
         wgpuEngine._fileStore( objPath, data );
         const meshInstance3D = new Module._parseObj( objPath, createAABB );
@@ -56,6 +60,16 @@ wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
 }
 
 // Utility functions
+
+wgpuEngine._getFilename = function( filename )
+{
+    if( !filename.includes( '/' ) )
+    {
+        return filename;
+    }
+    // Return the last part of the path
+    return filename.substring( filename.lastIndexOf( '/' ) + 1 );
+}
 
 wgpuEngine._fileStore = function( filename, buffer ) {
     let data = new Uint8Array( buffer );
