@@ -20,7 +20,10 @@ window.App = {
         const scene = this.engine.getMainScene();
 
         const skybox = new WGE.Environment3D();
-        await skybox.setTexture( "test.hdr" );
+        // It's possible to use "await" here to block the main thread and wait
+        // for the texture to be loaded
+        // await skybox.setTexture( "test.hdr" );
+        skybox.setTexture( "test.hdr" );
         scene.addNode( skybox, -1 );
 
         WGE.Engine.onRender = () => {
@@ -28,7 +31,13 @@ window.App = {
         }
 
         WGE.Engine.onUpdate = ( dt ) => {
+
             scene.update( dt );
+
+            if( window.torus )
+            {
+                window.torus.rotate( WGE.radians( 100.0 * dt ), new WGE.vec3(0.0, 0.0, 1.0) );
+            }
 
             if( this.stats )
                 this.stats.update();
@@ -89,6 +98,19 @@ window.App = {
             // Method 2: Use callback
             const nodes = WGE.parseGltf( "right_controller.glb", null, ( nodes ) => {
                 scene.addNodes( nodes, -1 );
+            });
+        }
+
+        // Parse an Obj file
+        {
+            // Method 1: Await
+            // const meshInstance3D = await WGE.parseObj( "torus.obj", true );
+            // scene.addNode( meshInstance3D, -1 );
+
+            // Method 2: Use callback
+            const meshInstance3D = WGE.parseObj( "torus.obj", true, ( meshInstance3D ) => {
+                scene.addNode( meshInstance3D, -1 );
+                window.torus = meshInstance3D; // Store the torus mesh instance globally for debugging
             });
         }
 

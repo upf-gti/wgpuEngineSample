@@ -14,17 +14,18 @@
 #include "graphics/material.h"
 
 #include "framework/math/transform.h"
-#include "framework/math/math_utils.h"
+#include "framework/math/aabb.h"
+#include "framework/math/intersections.h"
 #include "framework/nodes/environment_3d.h"
 #include "framework/nodes/directional_light_3d.h"
 #include "framework/nodes/omni_light_3d.h"
 #include "framework/nodes/spot_light_3d.h"
 #include "framework/parsers/parse_gltf.h"
+#include "framework/parsers/parse_obj.h"
 #include "framework/camera/flyover_camera.h"
 #include "framework/camera/orbit_camera.h"
 
 #include <glm/gtc/type_ptr.hpp>
-#include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/euler_angles.hpp"
 
 #include <emscripten.h>
@@ -77,8 +78,50 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     class_<Transform>("Transform")
         .constructor<>();
 
+    class_<AABB>("AABB")
+        .constructor<>()
+        .function("transform", &AABB::transform)
+        .function("rotate", &AABB::rotate)
+        .function("getLongestAxis", &AABB::longest_axis);
+
+    // Utils
+
+    function("getRayPlaneIntersection", &intersection::ray_plane, allow_raw_pointers());
+    function("getRayQuadIntersection", &intersection::ray_quad, allow_raw_pointers());
+    // function("getRayCurvedQuadIntersection", &intersection::ray_curved_quad, allow_raw_pointers());
+    function("getRayCircleIntersection", &intersection::ray_circle, allow_raw_pointers());
+    function("getRaySphereIntersection", &intersection::ray_sphere, allow_raw_pointers());
+    function("getRayAABBIntersection", &intersection::ray_AABB, allow_raw_pointers());
+    function("getRayOBBIntersection", &intersection::ray_OBB, allow_raw_pointers());
+    function("getPointAABBIntersection", &intersection::point_AABB);
+    function("getPointPlaneIntersection", &intersection::point_plane, allow_raw_pointers());
+    function("getPointCircleIntersection", &intersection::point_circle);
+    function("getPointCircleRingIntersection", &intersection::point_circle_ring);
+    function("getPointSphereIntersection", &intersection::point_sphere);
+    function("getAABBMinMax", &intersection::AABB_AABB_min_max);
+
+    function("mergeAABBs", &merge_aabbs);
     function("radians", &radians);
     function("degrees", &degrees);
+    function("loadVec3", &load_vec3);
+    function("loadVec4", &load_vec4);
+    function("loadQuat", &load_quat);
+    function("modVec3", &mod_vec3);
+    function("getQuatBetweenVec3", &get_quat_between_vec3);
+    function("quatSwingTwistDecomposition", &quat_swing_twist_decomposition);
+    function("nextPowerOfTwo", &next_power_of_two);
+    function("hsv2rgb", &hsv2rgb);
+    function("rgb2hsv", &rgb2hsv);
+    function("rotatePointByQuat", &rotate_point_by_quat);
+    function("getFront", &get_front);
+    function("getPerpendicular", &get_perpendicular);
+    function("ceilToNextMultiple", &ceil_to_next_multiple);
+    function("clampRotation", &clamp_rotation);
+    function("remapRange", &remap_range);
+    function("yawPitchToVector", &yaw_pitch_to_vector);
+    function("vectorToYawPitch", &vector_to_yaw_pitch, allow_raw_pointers());
+    function("getRotationToFace", &get_rotation_to_face);
+    function("smoothDampAngle", &smooth_damp_angle, allow_raw_pointers());
 
     /*
     *	Camera
@@ -321,6 +364,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     class_<GltfParser, base<Parser>>("GltfParser")
         .constructor<>()
         .function("parse", &GltfParser::parse);
+
+    function("_parseObj", select_overload<MeshInstance3D*(const std::string&, bool)>(&parse_obj), allow_raw_pointers());
 
     register_vector<Node*>("VectorNodePtr");
 

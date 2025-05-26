@@ -35,14 +35,23 @@ wgpuEngine.Environment3D.prototype.setTexture = async function( textureName ) {
     }).catch(( err ) => console.error( err ) );
 }
 
-wgpuEngine.parseGltf = async function( glTFName, nodes, onLoad ) {
-    return await wgpuEngine._requestBinary( glTFName ).then( data => {
-        wgpuEngine._fileStore( glTFName, data );
+wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
+    return await wgpuEngine._requestBinary( gltfPath ).then( data => {
+        wgpuEngine._fileStore( gltfPath, data );
         nodes = nodes ?? new wgpuEngine.VectorNodePtr();
         const parser = new wgpuEngine.GltfParser();
-        parser.parse( glTFName, nodes );
+        parser.parse( gltfPath, nodes );
         if( onLoad ) onLoad( nodes );
         return nodes;
+    }).catch(( err ) => console.error( err ) );
+}
+
+wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
+    return await wgpuEngine._requestBinary( objPath ).then( data => {
+        wgpuEngine._fileStore( objPath, data );
+        const meshInstance3D = new Module._parseObj( objPath, createAABB );
+        if( onLoad ) onLoad( meshInstance3D );
+        return meshInstance3D;
     }).catch(( err ) => console.error( err ) );
 }
 
