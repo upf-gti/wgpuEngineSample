@@ -20,6 +20,7 @@
 #include "framework/nodes/directional_light_3d.h"
 #include "framework/nodes/omni_light_3d.h"
 #include "framework/nodes/spot_light_3d.h"
+#include "framework/nodes/animation_player.h"
 #include "framework/parsers/parse_gltf.h"
 #include "framework/parsers/parse_obj.h"
 #include "framework/camera/flyover_camera.h"
@@ -80,6 +81,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<AABB>("AABB")
         .constructor<>()
+        .property("center", &AABB::center, return_value_policy::reference())
+        .property("halfSize", &AABB::half_size, return_value_policy::reference())
         .function("transform", &AABB::transform)
         .function("rotate", &AABB::rotate)
         .function("getLongestAxis", &AABB::longest_axis);
@@ -123,6 +126,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     function("getRotationToFace", &get_rotation_to_face);
     function("smoothDampAngle", &smooth_damp_angle, allow_raw_pointers());
 
+    class_<Resource>("Resource").constructor<>();
+
     /*
     *	Camera
     */
@@ -136,6 +141,15 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .value("CAMERA_ORTHOGRAPHIC", Camera::eCameraProjectionType::ORTHOGRAPHIC);
 
     class_<Camera>("Camera")
+        .property("fov", &Camera::get_fov)
+        .property("aspect", &Camera::get_aspect)
+        .property("near", &Camera::get_near)
+        .property("far", &Camera::get_far)
+        .property("speed", &Camera::speed)
+        .property("mouseSensitivity", &Camera::mouse_sensitivity)
+        .property("eye", &Camera::eye, return_value_policy::reference())
+        .property("center", &Camera::center, return_value_policy::reference())
+        .property("up", &Camera::up, return_value_policy::reference())
         .function("update", &Camera::update)
         .function("updateViewMatrix", &Camera::update_view_matrix)
         .function("updateProjectionMatrix", &Camera::update_projection_matrix)
@@ -145,21 +159,12 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("setPerspective", &Camera::set_perspective)
         .function("setOrthographic", &Camera::set_orthographic)
         .function("setView", &Camera::set_view)
-        .function("setProjection", &Camera::set_projection)
-        .function("setViewProjection", &Camera::set_view_projection)
         .function("setEye", &Camera::set_eye)
         .function("setCenter", &Camera::set_center)
-        .function("setSpeed", &Camera::set_speed)
-        .function("setMouseSensitivity", &Camera::set_mouse_sensitivity)
+        .function("setUp", &Camera::set_up)
+        .function("setProjection", &Camera::set_projection)
+        .function("setViewProjection", &Camera::set_view_projection)
         .function("getLocalVector", &Camera::get_local_vector)
-        .function("getEye", &Camera::get_eye)
-        .function("getCenter", &Camera::get_center)
-        .function("getUp", &Camera::get_up)
-        .function("getFov", &Camera::get_fov)
-        .function("getAspect", &Camera::get_aspect)
-        .function("getNear", &Camera::get_near)
-        .function("getFar", &Camera::get_far)
-        .function("getSpeed", &Camera::get_speed)
         .function("getView", &Camera::get_view)
         .function("getProjection", &Camera::get_projection)
         .function("getViewProjection", &Camera::get_view_projection);
@@ -216,9 +221,9 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Pipeline>("Pipeline").constructor<>();
 
-    class_<Texture>("Texture").constructor<>();
+    class_<Texture, base<Resource>>("Texture").constructor<>();
 
-    class_<Material>("Material")
+    class_<Material, base<Resource>>("Material")
         .constructor<>()
         .function("setColor", &Material::set_color)
         .function("setRoughness", &Material::set_roughness)
@@ -268,16 +273,15 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("getShader", &Material::get_shader, allow_raw_pointers())
         .function("getShaderRef", &Material::get_shader_ref, allow_raw_pointers());
 
-   class_<Surface>("Surface")
+   class_<Surface, base<Resource>>("Surface")
         .constructor<>()
         .function("createQuad", &Surface::create_quad, allow_raw_pointers());
 
    class_<Node>("Node")
         .constructor<>()
+        .property("name", &Node::name)
         .function("render", &Node::render)
-        .function("update", &Node::update)
-        .function("getName", &Node::get_name)
-        .function("setName", &Node::set_name);
+        .function("update", &Node::update);
 
     class_<Node3D, base<Node>>("Node3D")
         .constructor<>()
@@ -342,12 +346,55 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Scene>("Scene")
         .constructor<>()
+        .property("name", &Scene::name)
         .function("update", &Scene::update)
         .function("render", &Scene::render)
         .function("addNode", &Scene::add_node, allow_raw_pointers())
         .function("addNodes", &Scene::add_nodes)
         .function("removeNode", &Scene::remove_node, allow_raw_pointers())
+        .function("getNodes", &Scene::get_nodes)
         .function("deleteAll", &Scene::delete_all);
+
+    /*
+    *	Animation
+    */
+
+    enum_<eTrackType>("TrackType")
+        .value("TYPE_UNDEFINED", TYPE_UNDEFINED)
+        .value("TYPE_FLOAT", TYPE_FLOAT)
+        .value("TYPE_VECTOR2", TYPE_VECTOR2)
+        .value("TYPE_VECTOR3", TYPE_VECTOR3)
+        .value("TYPE_VECTOR4", TYPE_VECTOR4)
+        .value("TYPE_QUAT", TYPE_QUAT)
+        .value("TYPE_METHOD", TYPE_METHOD)
+        .value("TYPE_POSITION", TYPE_POSITION)
+        .value("TYPE_ROTATION", TYPE_ROTATION)
+        .value("TYPE_SCALE", TYPE_SCALE);
+
+    enum_<eLoopType>("LoopType")
+        .value("ANIMATION_LOOP_NONE", ANIMATION_LOOP_NONE)
+        .value("ANIMATION_LOOP_DEFAULT", ANIMATION_LOOP_DEFAULT)
+        .value("ANIMATION_LOOP_REVERSE", ANIMATION_LOOP_REVERSE)
+        .value("ANIMATION_LOOP_PING_PONG", ANIMATION_LOOP_PING_PONG);
+
+    class_<Animation, base<Resource>>("Animation").constructor<>();
+
+    class_<AnimationPlayer, base<Node3D>>("AnimationPlayer")
+        .constructor<>()
+        .constructor<const std::string&>()
+        .property("playback", &AnimationPlayer::get_playback_time, &AnimationPlayer::set_playback_time)
+        .property("speed", &AnimationPlayer::speed)
+        .property("blendTime", &AnimationPlayer::blend_time)
+        .property("loopType", &AnimationPlayer::loop_type)
+        .property("rootNode", &AnimationPlayer::root_node, allow_raw_pointers())
+        .property("playing", &AnimationPlayer::is_playing)
+        .property("paused", &AnimationPlayer::is_paused)
+        .function("play", select_overload<void(const std::string&, float, float, float)>(&AnimationPlayer::play))
+        .function("play", select_overload<void(Animation*, float, float, float)>(&AnimationPlayer::play), allow_raw_pointers())
+        .function("pause", &AnimationPlayer::pause)
+        .function("resume", &AnimationPlayer::resume)
+        .function("stop", &AnimationPlayer::stop)
+        .function("update", &AnimationPlayer::update);
 
     /*
     *	Parsers

@@ -53,7 +53,7 @@ window.App = {
 
             const surface = WGE.RendererStorage.getSurface( "quad" );
             const grid = new WGE.MeshInstance3D();
-            grid.setName( "Grid" );
+            grid.name = "Grid";
             grid.addSurface( surface );
             grid.setPosition( new WGE.vec3(0.0) );
             grid.rotate( WGE.radians( 90.0 ), new WGE.vec3(1.0, 0.0, 0.0) );
@@ -82,7 +82,7 @@ window.App = {
 
             const surface = WGE.RendererStorage.getSurface("box");
             const box = new WGE.MeshInstance3D();
-            box.setName( "Box" );
+            box.name = "Box";
             box.addSurface( surface );
             box.setPosition( new WGE.vec3(1.0, 0, -10.0) );
             box.setSurfaceMaterialOverride( surface, boxMaterial );
