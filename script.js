@@ -73,6 +73,11 @@ window.App = {
             const texture = await WGE.RendererStorage.getTexture( "wall.png" );
             boxMaterial.setDiffuseTexture( texture );
             boxMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", boxMaterial ) );
+
+            // Update with a custom shader
+            WGE.RendererStorage.getShader( "mesh_forward_custom.wgsl", boxMaterial, null, ( shader ) => {
+                boxMaterial.setShader( shader );
+            });
             
             // Method 2: Use callback
             // WGE.RendererStorage.getTexture( "wall.png", 0, (texture) => {

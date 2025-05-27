@@ -20,48 +20,61 @@ for( const key in Module )
 // Custom wrappers for some classes
 
 wgpuEngine.RendererStorage.getTexture = async function( texturePath, textureFlags, onLoad ) {
-    const textureFilePath = wgpuEngine._getFilename( texturePath );
-    return await wgpuEngine._requestBinary( texturePath ).then( data => {
-        wgpuEngine._fileStore( textureFilePath, data );
+    const textureFilePath = Module._getFilename( texturePath );
+    return await Module._requestBinary( texturePath ).then( data => {
+        Module._writeFile( textureFilePath, data );
         const texture = Module.RendererStorage._getTexture( textureFilePath, textureFlags ?? wgpuEngine.TextureStorageFlags.TEXTURE_STORAGE_NONE );
         if( onLoad ) onLoad( texture );
         return texture;
-    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
+    }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
+}
+
+wgpuEngine.RendererStorage.getShader = async function( shaderPath, material, customDefineSpecializations, onLoad ) {
+    const shaderFilePath = Module._getFilename( shaderPath );
+    return await Module._requestText( shaderPath ).then( data => {
+        data = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        Module._writeFile( shaderFilePath, data );
+        material = material ?? new wgpuEngine.Material();
+        customDefineSpecializations = customDefineSpecializations ?? new WGE.VectorString();
+        const shader = Module.RendererStorage._getShader( shaderFilePath, material, customDefineSpecializations );
+        if( onLoad ) onLoad( shader );
+        return shader;
+    }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.Environment3D.prototype.setTexture = async function( texturePath ) {
-    const textureFilePath = wgpuEngine._getFilename( texturePath );
-    await wgpuEngine._requestBinary( texturePath ).then( data => {
-        wgpuEngine._fileStore( textureFilePath, data );
+    const textureFilePath = Module._getFilename( texturePath );
+    await Module._requestBinary( texturePath ).then( data => {
+        Module._writeFile( textureFilePath, data );
         this._setTexture( textureFilePath );
-    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
+    }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
-    const gltfFilePath = wgpuEngine._getFilename( gltfPath );
-    return await wgpuEngine._requestBinary( gltfPath ).then( data => {
-        wgpuEngine._fileStore( gltfFilePath, data );
+    const gltfFilePath = Module._getFilename( gltfPath );
+    return await Module._requestBinary( gltfPath ).then( data => {
+        Module._writeFile( gltfFilePath, data );
         nodes = nodes ?? new wgpuEngine.VectorNodePtr();
         const parser = new wgpuEngine.GltfParser();
-        parser.parse( gltfFilePath, nodes );
+        parser.parse( gltfFilePath, nodes, wgpuEngine.ParseFlags.PARSE_DEFAULT.value );
         if( onLoad ) onLoad( nodes );
         return nodes;
-    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
+    }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
-    objPath = wgpuEngine._getFilename( objPath );
-    return await wgpuEngine._requestBinary( objPath ).then( data => {
-        wgpuEngine._fileStore( objPath, data );
+    objPath = Module._getFilename( objPath );
+    return await Module._requestBinary( objPath ).then( data => {
+        Module._writeFile( objPath, data );
         const meshInstance3D = new Module._parseObj( objPath, createAABB );
         if( onLoad ) onLoad( meshInstance3D );
         return meshInstance3D;
-    }).catch(( err ) => console.error( `${ wgpuEngine._getCurrentFunctionName() }: ${ err }` ) );
+    }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
 // Utility functions
 
-wgpuEngine._getFilename = function( filename )
+Module._getFilename = function( filename )
 {
     if( !filename.includes( '/' ) )
     {
@@ -71,7 +84,7 @@ wgpuEngine._getFilename = function( filename )
     return filename.substring( filename.lastIndexOf( '/' ) + 1 );
 }
 
-wgpuEngine._getCurrentFunctionName = function()
+Module._getCurrentFunctionName = function()
 {
     const err = new Error();
     const stack = err.stack?.split('\n');
@@ -84,21 +97,29 @@ wgpuEngine._getCurrentFunctionName = function()
     return 'unknown';
 }
 
-wgpuEngine._fileStore = function( filename, buffer ) {
-    let data = new Uint8Array( buffer );
-    let stream = FS.open( filename, 'w+' );
-    FS.write( stream, data, 0, data.length, 0 );
-    FS.close( stream );
+Module._writeFile = function( filename, data )
+{
+    if( data.constructor === ArrayBuffer )
+    {
+        data = new Uint8Array( data );
+    }
+    else if( typeof data != 'string' )
+    {
+        throw new Error( `${ Module._getCurrentFunctionName() }: Unsupported data type` );
+    }
+
+    FS.writeFile( filename, data, { flags: 'w+' } );
 }
 
-wgpuEngine._requestBinary = function( url, nocache ) {
+Module._requestFile = function( url, dataType, nocache ) {
     return new Promise((resolve, reject) => {
-        const dataType = "arraybuffer";
-        const mimeType = "application/octet-stream";
+        dataType = dataType ?? "arraybuffer";
+        const mimeType = dataType === "arraybuffer" ? "application/octet-stream" : undefined;
         var xhr = new XMLHttpRequest();
         xhr.open( 'GET', url, true );
         xhr.responseType = dataType;
-        xhr.overrideMimeType( mimeType );
+        if( mimeType )
+            xhr.overrideMimeType( mimeType );
         if( nocache )
             xhr.setRequestHeader('Cache-Control', 'no-cache');
         xhr.onload = function(load)
@@ -118,6 +139,14 @@ wgpuEngine._requestBinary = function( url, nocache ) {
         xhr.send();
         return xhr;
     });
+}
+
+Module._requestBinary = function( url, nocache ) {
+    return Module._requestFile( url, "arraybuffer", nocache );
+}
+
+Module._requestText = function( url, nocache ) {
+    return Module._requestFile( url, "text", nocache );
 }
 
 export { wgpuEngine };

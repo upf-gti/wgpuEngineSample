@@ -128,6 +128,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Resource>("Resource").constructor<>();
 
+    register_vector<std::string>("VectorString");
+
     /*
     *	Camera
     */
@@ -248,7 +250,7 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("setType", &Material::set_type)
         .function("setPriority", &Material::set_priority)
         .function("setShader", &Material::set_shader, allow_raw_pointers())
-        .function("setShader_pipeline", &Material::set_shader_pipeline, allow_raw_pointers())
+        .function("setShaderPipeline", &Material::set_shader_pipeline, allow_raw_pointers())
         .function("getColor", &Material::get_color)
         .function("getRoughness", &Material::get_roughness)
         .function("getMetallic", &Material::get_metallic)
@@ -434,8 +436,9 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<RendererStorage>("RendererStorage")
         .class_function("getSurface", &RendererStorage::get_surface, allow_raw_pointers())
+        .class_function("getShaderFromName", &RendererStorage::get_shader_from_name, allow_raw_pointers())
         .class_function("_getTexture", &RendererStorage::get_texture, allow_raw_pointers())
-        .class_function("getShaderFromName", &RendererStorage::get_shader_from_name, allow_raw_pointers());
+        .class_function("_getShader", select_overload<Shader*(const std::string&,const Material*,const std::vector<std::string>&)>(&RendererStorage::get_shader), allow_raw_pointers());
 
     /*
     *	Engine
