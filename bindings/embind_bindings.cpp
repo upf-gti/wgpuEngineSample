@@ -12,6 +12,7 @@
 #include "graphics/texture.h"
 #include "graphics/pipeline.h"
 #include "graphics/material.h"
+#include "graphics/font.h"
 
 #include "framework/math/transform.h"
 #include "framework/math/aabb.h"
@@ -25,6 +26,7 @@
 #include "framework/parsers/parse_obj.h"
 #include "framework/camera/flyover_camera.h"
 #include "framework/camera/orbit_camera.h"
+#include "framework/ui/gizmo_3d.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include "glm/gtx/euler_angles.hpp"
@@ -76,8 +78,13 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .property("z", &glm::quat::z)
         .property("w", &glm::quat::w);
 
-    class_<Transform>("Transform")
+    class_<glm::mat4x4>("mat4")
         .constructor<>();
+
+    class_<Transform>("Transform")
+        .constructor<>()
+        .class_function("transformToMat4", &Transform::transform_to_mat4)
+        .class_function("mat4ToTransform", &Transform::mat4_to_transform);
 
     class_<AABB>("AABB")
         .constructor<>()
@@ -127,6 +134,52 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     function("smoothDampAngle", &smooth_damp_angle, allow_raw_pointers());
 
     class_<Resource>("Resource").constructor<>();
+
+    enum_<eGizmoOp>("GizmoOp")
+        .value("TRANSLATE_X", TRANSLATE_X)
+        .value("TRANSLATE_Y", TRANSLATE_Y)
+        .value("TRANSLATE_Z", TRANSLATE_Z)
+        .value("ROTATE_X", ROTATE_X)
+        .value("ROTATE_Y", ROTATE_Y)
+        .value("ROTATE_Z", ROTATE_Z)
+        .value("ROTATE_SCREEN", ROTATE_SCREEN)
+        .value("SCALE_X", SCALE_X)
+        .value("SCALE_Y", SCALE_Y)
+        .value("SCALE_Z", SCALE_Z)
+        .value("BOUNDS", BOUNDS)
+        .value("SCALE_XU", SCALE_XU)
+        .value("SCALE_YU", SCALE_YU)
+        .value("SCALE_ZU", SCALE_ZU)
+        .value("TRANSLATE", TRANSLATE)
+        .value("ROTATE", ROTATE)
+        .value("SCALE", SCALE)
+        .value("SCALEU", SCALEU)
+        .value("UNIVERSAL", UNIVERSAL);
+
+    class_<Gizmo2D>("Gizmo2D")
+        .constructor<>()
+        .property("mode", &Gizmo2D::mode)
+        .property("operation", &Gizmo2D::operation)
+        .function("render", &Gizmo2D::render);
+
+    class_<Gizmo3D>("Gizmo3D")
+        .constructor<>()
+        .property("enabled", &Gizmo3D::enabled)
+        .property("transform", &Gizmo3D::transform, return_value_policy::reference())
+        .property("position", &Gizmo3D::get_position, return_value_policy::reference())
+        .property("rotation", &Gizmo3D::get_rotation, return_value_policy::reference())
+        .property("eulerRotation", &Gizmo3D::get_euler_rotation, return_value_policy::reference())
+        .function("initialize", &Gizmo3D::initialize)
+        .function("render", &Gizmo3D::render)
+        .function("update", select_overload<bool(const glm::vec3&, float)>(&Gizmo3D::update))
+        .function("clean", &Gizmo3D::clean)
+        .function("setOperation", &Gizmo3D::set_operation);
+
+    //bool update(glm::vec3 & new_position, const glm::vec3 & controller_position, float delta_time);
+    //bool update(glm::vec3 & new_position, glm::quat & rotation, const glm::vec3 & controller_position, float delta_time);
+    //bool update(glm::vec3 & new_position, glm::vec3 & scale, const glm::vec3 & controller_position, float delta_time);
+    //bool update(Transform & t, const glm::vec3 & controller_position, float delta_time);
+    //bool update(const glm::vec3 & controller_position, float delta_time);
 
     register_vector<std::string>("VectorString");
 
@@ -221,9 +274,13 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Shader>("Shader").constructor<>();
 
+    class_<Uniform>("Uniform").constructor<>();
+
     class_<Pipeline>("Pipeline").constructor<>();
 
     class_<Texture, base<Resource>>("Texture").constructor<>();
+
+    class_<Font, base<Resource>>("Font").constructor<>();
 
     class_<Material, base<Resource>>("Material")
         .constructor<>()
@@ -379,6 +436,13 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .value("ANIMATION_LOOP_REVERSE", ANIMATION_LOOP_REVERSE)
         .value("ANIMATION_LOOP_PING_PONG", ANIMATION_LOOP_PING_PONG);
 
+
+    class_<Track>("Track").constructor<>();
+
+    class_<Pose>("Pose").constructor<>();
+
+    class_<Skeleton, base<Resource>>("Skeleton").constructor<>();
+
     class_<Animation, base<Resource>>("Animation").constructor<>();
 
     class_<AnimationPlayer, base<Node3D>>("AnimationPlayer")
@@ -425,7 +489,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     value_object<sRendererConfiguration>("RendererConfiguration");
 
     class_<Renderer>("Renderer")
-        .constructor<const sRendererConfiguration&>();
+        .constructor<const sRendererConfiguration&>()
+        .function("getCamera", &Renderer::get_camera, allow_raw_pointers());
 
     enum_<TextureStorageFlags>("TextureStorageFlags")
         .value("TEXTURE_STORAGE_NONE", TEXTURE_STORAGE_NONE)
@@ -455,5 +520,6 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         // .function("initialize", &Engine::initialize)
         .class_function("getInstance", &Engine::get_instance, return_value_policy::reference())
         .function("setWasmModuleInitialized", &Engine::set_wasm_module_initialized)
-        .function("getMainScene", &Engine::get_main_scene, allow_raw_pointers());
+        .function("getMainScene", &Engine::get_main_scene, allow_raw_pointers())
+        .function("getRenderer", &Engine::get_renderer, allow_raw_pointers());
 }

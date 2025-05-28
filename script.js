@@ -9,6 +9,7 @@ window.App = {
     async init() {
 
         this.engine = window.engineInstance;
+        this.renderer = this.engine.getRenderer();
 
         console.log(WGE);
         window.WGE = WGE;
@@ -18,16 +19,29 @@ window.App = {
         // }
 
         const scene = this.engine.getMainScene();
+        window.scene = scene;
 
         const skybox = new WGE.Environment3D();
         // It's possible to use "await" here to block the main thread and wait
         // for the texture to be loaded
         // await skybox.setTexture( "test.hdr" );
         skybox.setTexture( "test.hdr" );
+
         scene.addNode( skybox, -1 );
 
         WGE.Engine.onRender = () => {
             scene.render();
+
+            if( window.box )
+            {
+                const camera = this.renderer.getCamera();
+                const model = WGE.Transform.transformToMat4( window.box.getTransform() );
+                if( this.gizmo.render( camera.getView(), camera.getProjection(), model ) )
+                {
+                    const newTransform = WGE.Transform.mat4ToTransform( model );
+                    window.box.setTransform( newTransform );
+                }
+            }
         }
 
         WGE.Engine.onUpdate = ( dt ) => {
@@ -89,9 +103,10 @@ window.App = {
             const box = new WGE.MeshInstance3D();
             box.name = "Box";
             box.addSurface( surface );
-            box.setPosition( new WGE.vec3(1.0, 0, -10.0) );
+            box.setPosition( new WGE.vec3(1.0, 0, -5.0) );
             box.setSurfaceMaterialOverride( surface, boxMaterial );
             scene.addNode( box, -1 );
+            window.box = box;
         }
 
         // Parse a glTF file
@@ -126,6 +141,11 @@ window.App = {
             directionalLight.setIntensity( 5.0 );
             directionalLight.rotate( WGE.radians( 90.0 ), new WGE.vec3(0.0, 1.0, 0.0) );
             scene.addNode( directionalLight, -1);
+        }
+
+        // Create gizmo
+        {
+            this.gizmo = new WGE.Gizmo2D();
         }
 
         this.initUI();
