@@ -15,7 +15,7 @@
 
 #include "spdlog/spdlog.h"
 
-int SampleEngine::initialize(Renderer* renderer, sEngineConfiguration configuration)
+int SampleEngine::initialize(Renderer* renderer, const sEngineConfiguration& configuration)
 {
 	return Engine::initialize(renderer, configuration);
 }
