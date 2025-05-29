@@ -340,7 +340,9 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .constructor<>()
         .property("name", &Node::name)
         .function("render", &Node::render)
-        .function("update", &Node::update);
+        .function("update", &Node::update)
+        .function("getChildren", &Node::get_children)
+       ;
 
     class_<Node3D, base<Node>>("Node3D")
         .constructor<>()
@@ -521,5 +523,6 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .class_function("getInstance", &Engine::get_instance, return_value_policy::reference())
         .function("setWasmModuleInitialized", &Engine::set_wasm_module_initialized)
         .function("getMainScene", &Engine::get_main_scene, allow_raw_pointers())
-        .function("getRenderer", &Engine::get_renderer, allow_raw_pointers());
+        .function("getRenderer", &Engine::get_renderer, allow_raw_pointers())
+        .function("resize", &Engine::resize_window);
 }

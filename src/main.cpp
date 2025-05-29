@@ -7,20 +7,21 @@
 #include <emscripten/bind.h>
 
 // Binding code
-EMSCRIPTEN_BINDINGS(_Class_) {
-
-    emscripten::class_<SampleEngine>("SampleEngine")
-        .constructor<>()
-        .class_function("getInstance", &SampleEngine::get_sample_instance, emscripten::return_value_policy::reference())
-        .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized)
-        .function("appendGLB", &SampleEngine::append_glb);
-}
+//EMSCRIPTEN_BINDINGS(_Class_) {
+//
+//    emscripten::class_<SampleEngine>("SampleEngine")
+//        .constructor<>()
+//        .class_function("getInstance", &SampleEngine::get_sample_instance, emscripten::return_value_policy::reference())
+//        .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized)
+//        .function("appendGLB", &SampleEngine::append_glb);
+//}
 
 #endif
 
 int main()
 {
-    SampleEngine* engine = new SampleEngine();
+    Engine* engine = new Engine();
+
     SampleRenderer* renderer = new SampleRenderer();
 
     sEngineConfiguration configuration = {

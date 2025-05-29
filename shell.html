@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Rooms</title>
+    <title>Web-wgpuEngine</title>
+    <link rel="stylesheet" href="https://cdn.skypack.dev/lexgui/build/lexgui.css">
     <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
     <script type="importmap">
         {
@@ -16,25 +17,26 @@
 </head>
 
 <body>
-    <button id="xr-button" style="z-index:10;position:absolute;top:2%;left:2%" disabled>WebXR or WebGPU not supported</button>
+    <button id="xr-button" style="z-index:10;position:absolute;top:5%;left:1%" disabled>WebXR or WebGPU not supported</button>
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1
-            style="position:fixed;height:100%;width:100%;top:0%;left:0%;resize:both;"></canvas>
+            style="height:100%;width:100%;resize:both;outline:none;"></canvas>
     <template id="main-script">
         {{{ SCRIPT }}}
     </template>
     <script type='text/javascript'>
 
         var Module = {
+            html5ResizeTarget: "#canvas-area",
             preRun: [],
             postRun: [],
             canvas: (function () {
                 var canvas = document.getElementById('canvas');
 
                 // Event handler to resize the canvas when the document view is changed
-                window.addEventListener('resize', () => {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }, false);
+                // window.addEventListener('resize', () => {
+                //     canvas.width = window.innerWidth;
+                //     canvas.height = window.innerHeight;
+                // }, false);
 
                 return canvas;
             })(),

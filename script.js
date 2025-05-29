@@ -5,6 +5,7 @@ import { wgpuEngine as WGE } from './wgpuengine.module.js';
 window.App = {
 
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
+    selectedNode: null,
 
     async init() {
 
@@ -19,7 +20,7 @@ window.App = {
         // }
 
         const scene = this.engine.getMainScene();
-        window.scene = scene;
+        this.scene = scene;
 
         const skybox = new WGE.Environment3D();
         // It's possible to use "await" here to block the main thread and wait
@@ -32,14 +33,14 @@ window.App = {
         WGE.Engine.onRender = () => {
             scene.render();
 
-            if( window.box )
+            if( this.selectedNode )
             {
                 const camera = this.renderer.getCamera();
-                const model = WGE.Transform.transformToMat4( window.box.getTransform() );
+                const model = WGE.Transform.transformToMat4( this.selectedNode.getTransform() );
                 if( this.gizmo.render( camera.getView(), camera.getProjection(), model ) )
                 {
                     const newTransform = WGE.Transform.mat4ToTransform( model );
-                    window.box.setTransform( newTransform );
+                    this.selectedNode.setTransform( newTransform );
                 }
             }
         }
@@ -151,10 +152,176 @@ window.App = {
         this.initUI();
     },
 
-    initUI() {
+    async initUI() {
+
+        let area = await LX.init();
+
+        const menubar = area.addMenubar([
+            {
+                name: "File", submenu: [
+                    { name: "New Scene", callback: this.onNewScene.bind( this ) },
+                    { name: "Open Scene", icon: "FolderOpen", kbd: "S", callback: () => { console.log("Opening SCENE Dialog") } }
+                ]
+            },
+            {
+                name: "Edit", submenu: [
+                    { name: "Delete", icon: "Trash2" }
+                ]
+            },
+            {
+                name: "Add", submenu: [
+                    { name: "Mesh", submenu: [
+                        { name: "Box", callback: this.onAddMesh.bind( this ) },
+                        { name: "Sphere", callback: this.onAddMesh.bind( this ) },
+                        // { name: "Torus", callback: this.onAddMesh.bind( this ) }
+                    ] },
+                    { name: "Light", callback: this.onAddNode.bind( this ) },
+                    { name: "Camera", callback: this.onAddNode.bind( this ) },
+                ]
+            },
+            {
+                name: "View", submenu: [
+                    { name: "Grid Helper", checked: true },
+                    null,
+                    { name: "Fullscreen", checked: false }
+                ]
+            },
+            {
+                name: "Help", submenu: [
+                    { name: "Documentation", icon: "Book", kbd: "F1", callback: () => { window.open("https://upf-gti.github.io/wgpuEngine/") } },
+                    { name: "Source Code", icon: "Code", kbd: "F2", callback: () => { window.open("https://github.com/upf-gti/wgpuEngine/") } },
+                    null,
+                    { name: "About LexGUI", xicon: "Code", kbd: "F3", callback: () => { window.open("https://github.com/jxarco/lexgui.js/") } }
+                ]
+            },
+
+        ], { sticky: false });
+
+
+        var [ left, right ] = area.split({ sizes: ["80%", "20%"] });
+        left.root.id = "canvas-area";
 
         var canvas = document.getElementById( "canvas" );
-        document.body.appendChild(canvas);
+        left.attach( canvas );
+
+        left.onresize = () => {
+            this.engine.resize( left.root.offsetWidth, left.root.offsetHeight );
+            window.dispatchEvent( new Event("resize") );
+        }
+
+        left.onresize();
+
+        left.addOverlayButtons([
+            [
+                {
+                    name: "Translate",
+                    icon: "Move",
+                    callback: (value, event) => console.log(value),
+                    selectable: true
+                },
+                {
+                    name: "Rotate",
+                    icon: "RotateRight",
+                    callback: (value, event) => console.log(value),
+                    selectable: true
+                },
+                {
+                    name: "Scale",
+                    icon: "Scale3d",
+                    callback: (value, event) => console.log(value),
+                    selectable: true
+                }
+            ],
+            {
+                name: "Lit",
+                options: ["Lit", "Unlit", "Wireframe"],
+                callback: (value, event) => console.log(value)
+            }
+        ], { float: "htr" });
+
+        const [ rightUp, rightDown ] = right.split({ type: "vertical", sizes: ["40%", "60%"] });
+
+        // Scene Tree
+        {
+            this.sceneTreePanel = rightUp.addPanel();
+
+            this.sceneTreePanel.refresh = () => {
+
+                this.sceneTreePanel.clear();
+
+                let sceneData = [];
+
+                // Fill scene data recursively through the scene nodes and its children
+
+                function fillSceneData( node, data ) {
+                    const nodeData = {
+                        id: node.name,
+                        children: []
+                    };
+
+                    data.push( nodeData );
+
+                    const children = node.getChildren();
+                    for( let i = 0; i < children.size(); i++ )
+                    {
+                        fillSceneData( children.get(i), nodeData.children );
+                    }
+                }
+                
+                const nodes = this.scene.getNodes();
+                for( let i = 0; i < nodes.size(); i++ )
+                {
+                    fillSceneData( nodes.get( i ), sceneData );
+                }
+        
+                this.sceneTreePanel.addTree(null, sceneData, {
+                    // icons: treeIcons,
+                    // filter: false,
+                    addDefault: true,
+                    onevent: (event) => {    
+                        switch (event.type) {
+                            case LX.TreeEvent.NODE_SELECTED:
+                                const index = sceneData.findIndex( n => n.id === event.node.id );
+                                this.selectedNode = this.scene.getNodes().get(index);
+                                break;
+                            // case LX.TreeEvent.NODE_DELETED:
+                            //     if (event.multiple)
+                            //         console.log("Deleted: ", event.node);
+                            //     else
+                            //         console.log(event.node.id + " deleted");
+                            //     break;
+                            // case LX.TreeEvent.NODE_DBLCLICKED:
+                            //     console.log(event.node.id + " dbl clicked");
+                            //     break;
+                            // case LX.TreeEvent.NODE_CONTEXTMENU:
+                            //     const m = event.panel;
+                            //     m.add("Components/Transform");
+                            //     m.add("Components/MeshRenderer");
+                            //     break;
+                            // case LX.TreeEvent.NODE_DRAGGED:
+                            //     console.log(event.node.id + " is now child of " + event.value.id);
+                            //     break;
+                            // case LX.TreeEvent.NODE_RENAMED:
+                            //     console.log(event.node.id + " is now called " + event.value);
+                            //     break;
+                            // case LX.TreeEvent.NODE_VISIBILITY:
+                            //     console.log(event.node.id + " visibility: " + event.value);
+                            //     break;
+                        }
+                    }
+                });
+            }
+
+            this.sceneTreePanel.refresh();
+        }
+
+        // Editor panels (This will be replaced by each node info)
+        {
+            const panelTabs = rightDown.addTabs();
+            panelTabs.add( "Object", document.createElement('div') );
+            panelTabs.add( "Geometry", document.createElement('div') );
+            panelTabs.add( "Material", document.createElement('div') );
+        }
 
         document.body.addEventListener('dragenter', e => e.preventDefault() );
         document.body.addEventListener('dragleave', e => e.preventDefault());
@@ -164,9 +331,8 @@ window.App = {
         }, false);
         document.body.addEventListener('drop', (e) => {
             e.preventDefault();
-            //this.toggleModal( true );
             const file = e.dataTransfer.files[0];
-            const ext = this.getExtension( file.name );
+            const ext = LX.getExtension( file.name );
             switch(ext)
             {
                 case "glb": this.loadLocation(this._loadGltf, file); break;
@@ -174,33 +340,74 @@ window.App = {
             }
         });
 
-        // Create loading  modal
-
-        this.modal = document.createElement( 'div' );
-
-        this.modal.style.width = "100%";
-        this.modal.style.height = "100%";
-        this.modal.style.opacity = "0.9";
-        this.modal.style.backgroundColor = "#000";
-        this.modal.style.position = "absolute";
-        this.modal.style.cursor = "wait";
-        this.modal.hidden = true;
-
-        document.body.appendChild( this.modal );
-
         this.stats = new Stats();
         this.stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+        this.stats.dom.style.top = "";
+        this.stats.dom.style.bottom = "0px";
 		document.body.appendChild( this.stats.dom );
     },
 
-    getExtension( filename ) {
-
-        return filename.includes('.') ? filename.split('.').pop() : null;
+    onNewScene() {
+        LX.prompt("Are you sure you want to create a new scene? This will discard the current scene.", "New Scene", (ok) => {}, { input: false });
     },
 
-    toggleModal( force ) {
+    onAddMesh( geometryType ) {
 
-        this.modal.hidden = force !== undefined ? (!force) : !this.modal.hidden;
+        const mesh = new WGE.MeshInstance3D();
+        mesh.name = "New Mesh";
+
+        // Add a surface
+        let surface = null;
+        
+        if( geometryType === "Sphere" )
+        {
+            surface = WGE.RendererStorage.getSurface("sphere");
+        }
+        // else if( geometryType === "Torus" )
+        // {
+        //     surface = WGE.RendererStorage.getSurface("torus");
+        // }
+        else if( geometryType === "Box" )
+        {
+            surface = WGE.RendererStorage.getSurface("box");
+        }
+        else
+        {
+            throw new Error( `Unknown geometry type: ${ geometryType }` );
+        }
+
+        mesh.addSurface( surface );
+
+        // Add a material
+        const material = new WGE.Material();
+        material.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", material ) );
+        mesh.setSurfaceMaterialOverride( surface, material );
+        this.scene.addNode( mesh, -1 );
+
+        this.sceneTreePanel.refresh();
+    },
+
+    onAddNode( type ) {
+        switch( type )
+        {
+            case "Light":
+                this.addLight();
+                break;
+            case "Camera":
+                this.addCamera();
+                break;
+        }
+    },
+
+    addLight() {
+        const light = new WGE.DirectionalLight3D();
+        light.setPosition( new WGE.vec3(0.0, 5.0, 0.0) );
+        light.setColor( new WGE.vec3(1.0, 1.0, 1.0) );
+        light.setIntensity( 1.0 );
+    },
+
+    addCamera() {
+        const camera = new WGE.Camera3D();
     },
 
     loadLocation( loader, file, data ) {
@@ -213,7 +420,6 @@ window.App = {
                 const path = file;
                 LX.requestBinary( path, ( data ) => loader.call(this, path, data ), ( e ) => {
                     LX.popup( e.constructor === String ? e :  `[${ path }] can't be loaded.`, "Request Blocked", { size: ["400px", "auto"], timeout: 10000 } );
-                    this.toggleModal( false );
                 } );
                 return;
             }
@@ -241,8 +447,6 @@ window.App = {
         this._fileStore( name, buffer );
 
         window.engineInstance.appendGLB( name );
-
-        this.toggleModal( false );
     },
 
     _loadPly( name, buffer ) {
@@ -254,8 +458,6 @@ window.App = {
         this._fileStore( name, buffer );
 
         window.engineInstance.loadPly( name );
-
-        this.toggleModal( false );
     },
 
     _fileStore( filename, buffer ) {
