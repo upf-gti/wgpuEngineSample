@@ -61,9 +61,9 @@ window.App = {
         // Create grid
         {
             const gridMaterial = new WGE.Material();
-            gridMaterial.setTransparencyType( WGE.TransparencyType.ALPHA_BLEND );
-            gridMaterial.setCullType( WGE.CullType.CULL_NONE );
-            gridMaterial.setType( WGE.MaterialType.MATERIAL_UNLIT );
+            gridMaterial.transparencyType = WGE.TransparencyType.ALPHA_BLEND;
+            gridMaterial.cullType = WGE.CullType.CULL_NONE;
+            gridMaterial.type = WGE.MaterialType.MATERIAL_UNLIT;
             gridMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_grid", gridMaterial ) );
 
             const surface = WGE.RendererStorage.getSurface( "quad" );
@@ -81,7 +81,7 @@ window.App = {
         // Create box
         {
             const boxMaterial = new WGE.Material();
-            boxMaterial.setColor( new WGE.vec4(0.3, 0.2, 0.3, 0.50) );
+            boxMaterial.color = new WGE.vec4(0.3, 0.2, 0.3, 0.50);
 
             // By now we need to wait for the texture to be loaded in JS
             // Method 1: Await
@@ -138,8 +138,8 @@ window.App = {
         // Create lights
         {
             const directionalLight = new WGE.DirectionalLight3D();
-            directionalLight.setColor( new WGE.vec3( 1.0, 0.0, 0.0 ) );
-            directionalLight.setIntensity( 5.0 );
+            directionalLight.color = new WGE.vec3( 1.0, 0.0, 0.0 );
+            directionalLight.intensity = 5.0;
             directionalLight.rotate( WGE.radians( 90.0 ), new WGE.vec3(0.0, 1.0, 0.0) );
             scene.addNode( directionalLight, -1);
         }

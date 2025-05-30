@@ -13,6 +13,7 @@
 #include "graphics/pipeline.h"
 #include "graphics/material.h"
 #include "graphics/font.h"
+#include "graphics/graphics_utils.h"
 
 #include "framework/math/transform.h"
 #include "framework/math/aabb.h"
@@ -27,6 +28,7 @@
 #include "framework/camera/flyover_camera.h"
 #include "framework/camera/orbit_camera.h"
 #include "framework/ui/gizmo_3d.h"
+#include "framework/input.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include "glm/gtx/euler_angles.hpp"
@@ -94,7 +96,44 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("rotate", &AABB::rotate)
         .function("getLongestAxis", &AABB::longest_axis);
 
-    // Utils
+    /*
+    *	Input
+    */
+
+    class_<Input>("Input")
+        // Poses
+        .class_function("getControllerPose", &Input::get_controller_pose)
+        .class_function("getControllerPosition", &Input::get_controller_position)
+        .class_function("getControllerRotation", &Input::get_controller_rotation)
+        // Buttons
+        .class_function("isButtonPressed", &Input::is_button_pressed)
+        .class_function("wasButtonPressed", &Input::was_button_pressed)
+        .class_function("wasButtonReleased", &Input::was_button_released)
+        .class_function("isButtonTouched", &Input::is_button_touched)
+        .class_function("wasButtonTouched", &Input::was_button_touched)
+        // Grabs
+        .class_function("isGrabPressed", &Input::is_grab_pressed)
+        .class_function("wasGrabPressed", &Input::was_grab_pressed)
+        .class_function("wasGrabReleased", &Input::was_grab_released)
+        .class_function("getGrabValue", &Input::get_grab_value)
+        // Triggers
+        .class_function("getTriggerValue", &Input::get_trigger_value)
+        .class_function("isTriggerPressed", &Input::is_trigger_pressed)
+        .class_function("wasTriggerPressed", &Input::was_trigger_pressed)
+        .class_function("wasTriggerReleased", &Input::was_trigger_released)
+        .class_function("isTriggerTouched", &Input::is_trigger_touched)
+        .class_function("wasTriggerTouched", &Input::was_trigger_touched)
+        // Thumbsticks
+        .class_function("getLeadingThumbstickAxis", &Input::get_leading_thumbstick_axis)
+        .class_function("getThumbstickValue", &Input::get_thumbstick_value)
+        .class_function("isThumbstickPressed", &Input::is_thumbstick_pressed)
+        .class_function("wasThumbstickPressed", &Input::was_thumbstick_pressed)
+        .class_function("isThumbstickTouched", &Input::is_thumbstick_touched)
+        .class_function("wasThumbstickTouched", &Input::was_thumbstick_touched);
+
+    /*
+    *	Utils
+    */
 
     function("getRayPlaneIntersection", &intersection::ray_plane, allow_raw_pointers());
     function("getRayQuadIntersection", &intersection::ray_quad, allow_raw_pointers());
@@ -184,6 +223,36 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
     register_vector<std::string>("VectorString");
 
     /*
+    *	WebGPU
+    */
+
+    value_object<WGPUColorTargetState>("WGPUColorTargetState");
+    value_object<WGPUConstantEntry>("WGPUConstantEntry");
+    value_object<RenderPipelineDescription>("RenderPipelineDescription");
+
+    register_vector<WGPUConstantEntry>("VectorWGPUConstantEntry");
+
+    class_<Shader>("Shader").constructor<>();
+
+    class_<Uniform>("Uniform").constructor<>();
+
+    class_<Pipeline>("Pipeline")
+        .constructor<>()
+        .property("isRenderPipeline", &Pipeline::is_render_pipeline)
+        .property("isComputePipeline", &Pipeline::is_compute_pipeline)
+        .property("msaaAllowed", &Pipeline::is_msaa_allowed)
+        .property("loaded", &Pipeline::is_loaded)
+        .function("createRender", &Pipeline::create_render, allow_raw_pointers())
+        .function("createRenderAsync", &Pipeline::create_render_async, allow_raw_pointers())
+        .function("createCompute", &Pipeline::create_compute, allow_raw_pointers())
+        .function("createComputeAsync", &Pipeline::create_compute_async, allow_raw_pointers());
+
+    class_<WebGPUContext>("WebGPUContext")
+        .constructor<>();
+
+    function("findOptimalDispatchSize", &find_optimal_dispatch_size, allow_raw_pointers());
+
+    /*
     *	Camera
     */
 
@@ -200,8 +269,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .property("aspect", &Camera::get_aspect)
         .property("near", &Camera::get_near)
         .property("far", &Camera::get_far)
-        .property("speed", &Camera::speed)
-        .property("mouseSensitivity", &Camera::mouse_sensitivity)
+        .property("speed", &Camera::get_speed, &Camera::set_speed)
+        .property("mouseSensitivity", &Camera::get_mouse_sensitivity, &Camera::set_mouse_sensitivity)
         .property("eye", &Camera::eye, return_value_policy::reference())
         .property("center", &Camera::center, return_value_policy::reference())
         .property("up", &Camera::up, return_value_policy::reference())
@@ -272,77 +341,73 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .value("LIGHT_OMNI", LIGHT_OMNI)
         .value("LIGHT_SPOT", LIGHT_SPOT);
 
-    class_<Shader>("Shader").constructor<>();
-
-    class_<Uniform>("Uniform").constructor<>();
-
-    class_<Pipeline>("Pipeline").constructor<>();
-
     class_<Texture, base<Resource>>("Texture").constructor<>();
 
     class_<Font, base<Resource>>("Font").constructor<>();
 
     class_<Material, base<Resource>>("Material")
         .constructor<>()
-        .function("setColor", &Material::set_color)
-        .function("setRoughness", &Material::set_roughness)
-        .function("setMetallic", &Material::set_metallic)
-        .function("setOcclusion", &Material::set_occlusion)
-        .function("setEmissive", &Material::set_emissive)
+        .property("is2D", &Material::get_is_2D, &Material::set_is_2D)
+        .property("type", &Material::get_type, &Material::set_type)
+        .property("priority", &Material::get_priority, &Material::set_priority)
+        .property("cullType", &Material::get_cull_type, &Material::set_cull_type)
+        .property("topologyType", &Material::get_topology_type, &Material::set_topology_type)
+        .property("transparencyType", &Material::get_transparency_type, &Material::set_transparency_type)
+        .property("alphaMask", &Material::get_alpha_mask, &Material::set_alpha_mask)
+        .property("depthRead", &Material::get_depth_read, &Material::set_depth_read)
+        .property("depthWrite", &Material::get_depth_write, &Material::set_depth_write)
+        .property("fragmentWrite", &Material::get_fragment_write, &Material::set_fragment_write)
+        .property("useSkinning", &Material::get_use_skinning, &Material::set_use_skinning)
+        .property("color", &Material::get_color, &Material::set_color)
+        .property("roughness", &Material::get_roughness, &Material::set_roughness)
+        .property("metallic", &Material::get_metallic, &Material::set_metallic)
+        .property("occlusion", &Material::get_occlusion, &Material::set_occlusion)
+        .property("emissive", &Material::get_emissive, &Material::set_emissive)
         .function("setDiffuseTexture", &Material::set_diffuse_texture, allow_raw_pointers())
         .function("setMetallicRoughnessTexture", &Material::set_metallic_roughness_texture, allow_raw_pointers())
         .function("setNormalTexture", &Material::set_normal_texture, allow_raw_pointers())
         .function("setEmissiveTexture", &Material::set_emissive_texture, allow_raw_pointers())
         .function("setOcclusionTexture", &Material::set_occlusion_texture, allow_raw_pointers())
-        .function("setAlphaMask", &Material::set_alpha_mask)
         .function("setDepthReadWrite", &Material::set_depth_read_write)
-        .function("setDepthRead", &Material::set_depth_read)
-        .function("setDepthWrite", &Material::set_depth_write)
-        .function("setUseSkinning", &Material::set_use_skinning)
-        .function("setIs2D", &Material::set_is_2D)
-        .function("setFragmentWrite", &Material::set_fragment_write)
-        .function("setTransparencyType", &Material::set_transparency_type)
-        .function("setTopologyType", &Material::set_topology_type)
-        .function("setCullType", &Material::set_cull_type)
-        .function("setType", &Material::set_type)
-        .function("setPriority", &Material::set_priority)
         .function("setShader", &Material::set_shader, allow_raw_pointers())
         .function("setShaderPipeline", &Material::set_shader_pipeline, allow_raw_pointers())
-        .function("getColor", &Material::get_color)
-        .function("getRoughness", &Material::get_roughness)
-        .function("getMetallic", &Material::get_metallic)
-        .function("getOcclusion", &Material::get_occlusion)
-        .function("getEmissive", &Material::get_emissive)
         .function("getDiffuseTexture", select_overload<Texture*()>(&Material::get_diffuse_texture), allow_raw_pointers())
         .function("getMetallicRoughnessTexture", select_overload<Texture*()>(&Material::get_metallic_roughness_texture), allow_raw_pointers())
         .function("getNormalTexture", select_overload<Texture*()>(&Material::get_normal_texture), allow_raw_pointers())
         .function("getEmissiveTexture", select_overload<Texture*()>(&Material::get_emissive_texture), allow_raw_pointers())
         .function("getOcclusionTexture", select_overload<Texture*()>(&Material::get_occlusion_texture), allow_raw_pointers())
-        .function("getAlphaMask", &Material::get_alpha_mask)
-        .function("getDepthRead", &Material::get_depth_read)
-        .function("getDepthWrite", &Material::get_depth_write)
-        .function("getUseSkinning", &Material::get_use_skinning)
-        .function("getIs2D", &Material::get_is_2D)
-        .function("getFragmentWrite", &Material::get_fragment_write)
-        .function("getTransparencyType", &Material::get_transparency_type)
-        .function("getTopologyType", &Material::get_topology_type)
-        .function("getCullType", &Material::get_cull_type)
-        .function("getType", &Material::get_type)
-        .function("getPriority", &Material::get_priority)
         .function("getShader", &Material::get_shader, allow_raw_pointers())
         .function("getShaderRef", &Material::get_shader_ref, allow_raw_pointers());
 
-   class_<Surface, base<Resource>>("Surface")
+    class_<Surface, base<Resource>>("Surface")
         .constructor<>()
-        .function("createQuad", &Surface::create_quad, allow_raw_pointers());
+        .property("aabb", &Surface::get_aabb, &Surface::set_aabb)
+        .property("vertexCount", &Surface::get_vertex_count)
+        .property("verticesByteSize", &Surface::get_vertices_byte_size)
+        .property("indexCount", &Surface::get_index_count)
+        .property("indicesByteSize", &Surface::get_indices_byte_size)
+        .property("interleavedDataByteSize", &Surface::get_interleaved_data_byte_size)
+        .function("createAxis", &Surface::create_axis, allow_raw_pointers())
+        .function("createQuad", &Surface::create_quad, allow_raw_pointers())
+        .function("createSubdividedQuad", &Surface::create_subdivided_quad, allow_raw_pointers())
+        .function("createBox", &Surface::create_box, allow_raw_pointers())
+        .function("createRoundedBox", &Surface::create_rounded_box, allow_raw_pointers())
+        .function("createSphere", &Surface::create_sphere, allow_raw_pointers())
+        .function("createCone", &Surface::create_cone, allow_raw_pointers())
+        .function("createCylinder", &Surface::create_cylinder, allow_raw_pointers())
+        .function("createCapsule", &Surface::create_capsule, allow_raw_pointers())
+        .function("createTorus", &Surface::create_torus, allow_raw_pointers())
+        .function("createCircle", &Surface::create_circle, allow_raw_pointers())
+        .function("createArrow", &Surface::create_arrow, allow_raw_pointers())
+        .function("createSkybox", &Surface::create_skybox, allow_raw_pointers())
+        .function("updateAABB", &Surface::update_aabb);
 
    class_<Node>("Node")
         .constructor<>()
         .property("name", &Node::name)
         .function("render", &Node::render)
         .function("update", &Node::update)
-        .function("getChildren", &Node::get_children)
-       ;
+        .function("getChildren", &Node::get_children);
 
     class_<Node3D, base<Node>>("Node3D")
         .constructor<>()
@@ -383,31 +448,28 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("_setTexture", &Environment3D::set_texture);
 
     class_<Light3D, base<Node3D>>("Light3D")
-        .function("render", &Light3D::render)
-        .function("getType", &Light3D::get_type)
-        .function("getIntensity", &Light3D::get_intensity)
-        .function("getColor", &Light3D::get_color)
-        .function("getFadingEnabled", &Light3D::get_fading_enabled)
-        .function("getCastShadows", &Light3D::get_cast_shadows)
-        .function("getRange", &Light3D::get_range)
-        .function("setColor", &Light3D::set_color)
-        .function("setIntensity", &Light3D::set_intensity)
-        .function("setRange", &Light3D::set_range)
-        .function("setFadingEnabled", &Light3D::set_fading_enabled)
-        .function("setCastShadows", &Light3D::set_cast_shadows);
+        .property("castShadows", &Light3D::get_cast_shadows, &Light3D::set_cast_shadows)
+        .property("color", select_overload<glm::vec3()const>(&Light3D::get_color), &Light3D::set_color)
+        .property("fadingEnabled", &Light3D::get_fading_enabled, &Light3D::set_fading_enabled)
+        .property("intensity", &Light3D::get_intensity, &Light3D::set_intensity)
+        .property("range", &Light3D::get_range, &Light3D::set_range)
+        .property("type", &Light3D::get_type)
+        .function("render", &Light3D::render);
 
     class_<DirectionalLight3D, base<Light3D>>("DirectionalLight3D")
         .constructor<>();
 
     class_<SpotLight3D, base<Light3D>>("SpotLight3D")
-        .constructor<>();
+        .constructor<>()
+        .property("innerConeAngle", &SpotLight3D::get_inner_cone_angle, &SpotLight3D::set_inner_cone_angle)
+        .property("outerConeAngle", &SpotLight3D::get_outer_cone_angle, &SpotLight3D::set_outer_cone_angle);
 
     class_<OmniLight3D, base<Light3D>>("OmniLight3D")
         .constructor<>();
 
     class_<Scene>("Scene")
         .constructor<>()
-        .property("name", &Scene::name)
+        .property("name", &Scene::get_name, &Scene::set_name)
         .function("update", &Scene::update)
         .function("render", &Scene::render)
         .function("addNode", &Scene::add_node, allow_raw_pointers())
@@ -451,10 +513,10 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .constructor<>()
         .constructor<const std::string&>()
         .property("playback", &AnimationPlayer::get_playback_time, &AnimationPlayer::set_playback_time)
-        .property("speed", &AnimationPlayer::speed)
-        .property("blendTime", &AnimationPlayer::blend_time)
-        .property("loopType", &AnimationPlayer::loop_type)
-        .property("rootNode", &AnimationPlayer::root_node, allow_raw_pointers())
+        .property("speed", &AnimationPlayer::get_speed, &AnimationPlayer::set_speed)
+        .property("blendTime", &AnimationPlayer::get_blend_time, &AnimationPlayer::set_blend_time)
+        .property("loopType", &AnimationPlayer::get_loop_type, &AnimationPlayer::set_loop_type)
+        .property("rootNode", &AnimationPlayer::root_node, return_value_policy::reference())
         .property("playing", &AnimationPlayer::is_playing)
         .property("paused", &AnimationPlayer::is_paused)
         .function("play", select_overload<void(const std::string&, float, float, float)>(&AnimationPlayer::play))
