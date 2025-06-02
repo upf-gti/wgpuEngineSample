@@ -24,8 +24,6 @@ int SampleEngine::post_initialize()
 {
     Engine::post_initialize();
 
-    main_scene = new Scene("main_scene");
-
     // Create skybox
     {
         MeshInstance3D* skybox = new Environment3D();
