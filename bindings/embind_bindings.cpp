@@ -23,6 +23,7 @@
 #include "framework/nodes/omni_light_3d.h"
 #include "framework/nodes/spot_light_3d.h"
 #include "framework/nodes/animation_player.h"
+#include "framework/nodes/skeleton_instance_3d.h"
 #include "framework/parsers/parse_gltf.h"
 #include "framework/parsers/parse_obj.h"
 #include "framework/camera/flyover_camera.h"
@@ -85,6 +86,9 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Transform>("Transform")
         .constructor<>()
+        .property("position", &Transform::get_position, &Transform::set_position)
+        .property("scale", &Transform::get_scale, &Transform::set_scale)
+        .property("rotation", &Transform::get_rotation, &Transform::set_rotation)
         .class_function("transformToMat4", &Transform::transform_to_mat4)
         .class_function("mat4ToTransform", &Transform::mat4_to_transform);
 
@@ -387,6 +391,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .property("indexCount", &Surface::get_index_count)
         .property("indicesByteSize", &Surface::get_indices_byte_size)
         .property("interleavedDataByteSize", &Surface::get_interleaved_data_byte_size)
+        .property("material", &Surface::get_material, return_value_policy::reference())
+        .function("setMaterial", &Surface::set_material, allow_raw_pointers())
         .function("createAxis", &Surface::create_axis, allow_raw_pointers())
         .function("createQuad", &Surface::create_quad, allow_raw_pointers())
         .function("createSubdividedQuad", &Surface::create_subdivided_quad, allow_raw_pointers())
@@ -407,10 +413,12 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .property("name", &Node::name)
         .function("render", &Node::render)
         .function("update", &Node::update)
-        .function("getChildren", &Node::get_children);
+        .function("getChildren", &Node::get_children)
+        .function("getNode", select_overload<Node*(const std::string&)>(&Node::get_node), return_value_policy::reference());
 
     class_<Node3D, base<Node>>("Node3D")
         .constructor<>()
+        .property("transform", select_overload<Transform()const>(&Node3D::get_transform), &Node3D::set_transform, return_value_policy::reference())
         .function("render", &Node3D::render)
         .function("update", &Node3D::update)
         .function("translate", &Node3D::translate)
@@ -423,7 +431,7 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("getGlobalModel", &Node3D::get_global_model)
         .function("getModel", &Node3D::get_model)
         .function("getRotation", &Node3D::get_rotation)
-        .function("getTransform", &Node3D::get_transform)
+        .function("getTransform", select_overload<Transform&()>(&Node3D::get_transform))
         .function("getGlobalTransform", &Node3D::get_global_transform)
         .function("setPosition", &Node3D::set_position)
         .function("setRotation", &Node3D::set_rotation)
@@ -438,6 +446,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .function("render", &MeshInstance3D::render)
         .function("update", &MeshInstance3D::update)
         .function("getSurface", &MeshInstance3D::get_surface, allow_raw_pointers())
+        .function("getSurfaceMaterial", &MeshInstance3D::get_surface_material, return_value_policy::reference())
+        .function("getSurfaceMaterialOverride", &MeshInstance3D::get_surface_material_override, return_value_policy::reference())
         .function("setSurfaceMaterialOverride", &MeshInstance3D::set_surface_material_override, allow_raw_pointers())
         .function("setFrustumCullingEnabled", &MeshInstance3D::set_frustum_culling_enabled)
         .function("addSurface", &MeshInstance3D::add_surface, allow_raw_pointers());
@@ -509,6 +519,8 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
 
     class_<Animation, base<Resource>>("Animation").constructor<>();
 
+    class_<SkeletonInstance3D, base<Node3D>>("SkeletonInstance3D").constructor<>();
+
     class_<AnimationPlayer, base<Node3D>>("AnimationPlayer")
         .constructor<>()
         .constructor<const std::string&>()
@@ -520,7 +532,7 @@ EMSCRIPTEN_BINDINGS(wgpuEngine_bindings) {
         .property("playing", &AnimationPlayer::is_playing)
         .property("paused", &AnimationPlayer::is_paused)
         .function("play", select_overload<void(const std::string&, float, float, float)>(&AnimationPlayer::play))
-        .function("play", select_overload<void(Animation*, float, float, float)>(&AnimationPlayer::play), allow_raw_pointers())
+        //.function("play", select_overload<void(Animation*, float, float, float)>(&AnimationPlayer::play), allow_raw_pointers())
         .function("pause", &AnimationPlayer::pause)
         .function("resume", &AnimationPlayer::resume)
         .function("stop", &AnimationPlayer::stop)
