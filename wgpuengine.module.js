@@ -72,6 +72,115 @@ wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
     }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
+// Expose data for creating user interfaces
+
+/* Surface */
+
+wgpuEngine.Surface.properties = [
+    // { name: "aabb", prettyName: "AABB", type: wgpuEngine.AABB },
+    { name: "vertexCount", prettyName: "Vertex Count", type: Number, disabled: true },
+    { name: "verticesByteSize", prettyName: "Vertices Byte Size", type: Number, disabled: true },
+    { name: "indexCount", prettyName: "Index Count", type: Number, disabled: true },
+    { name: "indicesByteSize", prettyName: "Indices Byte Size", type: Number, disabled: true },
+    { name: "interleavedDataByteSize", prettyName: "Interleaved Data Byte Size", type: Number, disabled: true },
+    // { name: "material", prettyName: "Material", type: wgpuEngine.Material }
+];
+
+/* Material */
+
+wgpuEngine.Material.properties = [
+    { name: "color", prettyName: "Color", type: wgpuEngine.vec4, min: 0, max: 1, step: 0.01 },
+    { name: "roughness", prettyName: "Roughness", type: Number, min: 0, max: 1, step: 0.01 },
+    { name: "metallic", prettyName: "Metallic", type: Number, min: 0, max: 1, step: 0.01 },
+    { name: "occlusion", prettyName: "Occlusion", type: Number, min: 0, max: 1, step: 0.01 },
+    { name: "emissive", prettyName: "Emissive", type: wgpuEngine.vec3 },
+    // { name: "is2D", prettyName: "Is 2D", type: Boolean },
+    { name: "type", prettyName: "Type", type: "Enum", enum: "MaterialType" },
+    { name: "priority", prettyName: "Priority", type: Number },
+    { name: "cullType", prettyName: "Cull Type", type: "Enum", enum: "CullType" },
+    { name: "topologyType", prettyName: "Topology Type", type: "Enum", enum: "TopologyType" },
+    { name: "transparencyType", prettyName: "Transparency Type", type: "Enum", enum: "TransparencyType" },
+    { name: "alphaMask", prettyName: "Alpha Mask", type: Number, min: 0, max: 1, step: 0.01 },
+    { name: "depthRead", prettyName: "Depth Read", type: Boolean },
+    { name: "depthWrite", prettyName: "Depth Write", type: Boolean },
+    { name: "fragmentWrite", prettyName: "Fragment Write", type: Boolean },
+    { name: "useSkinning", prettyName: "Use Skinning", type: Boolean },
+];
+
+/* Node */
+
+wgpuEngine.Node.icon = "CircleSmall";
+wgpuEngine.Node.properties = [
+    { name: "name", prettyName: "Name", type: String },
+];
+
+/* Node3D */
+
+wgpuEngine.Node3D.icon = "Move3d";
+wgpuEngine.Node3D.properties = wgpuEngine.Node.properties.concat( [
+    { name: "transform", prettyName: "Transform", type: wgpuEngine.Transform }
+] );
+
+/* MeshInstance3D */
+
+wgpuEngine.MeshInstance3D.icon = "Box";
+wgpuEngine.MeshInstance3D.properties = wgpuEngine.Node3D.properties.concat( [] );
+
+/* SkeletonInstance3D */
+
+wgpuEngine.SkeletonInstance3D.icon = "Bone";
+wgpuEngine.SkeletonInstance3D.properties = wgpuEngine.Node3D.properties.concat( [] );
+
+/* Light3D */
+
+wgpuEngine.Light3D.properties = wgpuEngine.Node3D.properties.concat( [
+    { name: "type", prettyName: "Type", type: "Enum", enum: "LightType", disabled: true },
+    { name: "color", prettyName: "Color", type: wgpuEngine.vec3, min: 0, max: 1, step: 0.01 },
+    { name: "intensity", prettyName: "Intensity", type: Number, min: 0, max: 10, step: 0.01 },
+    { name: "range", prettyName: "Range", type: Number, min: 0, max: 10, step: 0.1 },
+    { name: "castShadows", prettyName: "Cast Shadows", type: Boolean },
+    { name: "fadingEnabled", prettyName: "Fading Enabled", type: Boolean },
+] );
+
+/* DirectionalLight3D */
+
+wgpuEngine.DirectionalLight3D.icon = "Sun";
+wgpuEngine.DirectionalLight3D.properties = wgpuEngine.Light3D.properties.concat( [] );
+
+/* SpotLight3D */
+
+wgpuEngine.SpotLight3D.icon = "Cone";
+wgpuEngine.SpotLight3D.properties = wgpuEngine.Light3D.properties.concat( [
+    { name: "innerConeAngle", prettyName: "Inner Cone Angle", type: Number, min: 0, max: Math.PI / 2, step: 0.01, units: "rad" },
+    { name: "outerConeAngle", prettyName: "Outer Cone Angle", type: Number, min: 0, max: Math.PI / 2, step: 0.01, units: "rad" },
+] );
+
+/* OmniLight3D */
+
+wgpuEngine.OmniLight3D.icon = "Lightbulb";
+wgpuEngine.OmniLight3D.properties = wgpuEngine.Light3D.properties.concat( [] );
+
+/* Environment3D */
+
+wgpuEngine.Environment3D.icon = "Globe";
+wgpuEngine.Environment3D.properties = wgpuEngine.MeshInstance3D.properties.concat( [
+    { name: "texture", prettyName: "Texture", type: wgpuEngine.Texture, setter: function( value ) { this.setTexture( value ); } },
+] );
+
+/* AnimationPlayer */
+
+wgpuEngine.AnimationPlayer.icon = "Play";
+wgpuEngine.AnimationPlayer.properties = wgpuEngine.Node3D.properties.concat( [
+    { name: "blendTime", prettyName: "Blend Time", type: Number },
+    { name: "speed", prettyName: "Speed", type: Number },
+    { name: "loopType", prettyName: "Loop Type", type: "Enum", enum: "LoopType" },
+] );
+wgpuEngine.AnimationPlayer.methods = [
+    { name: "play", prettyName: "Play Animation" },
+    { name: "pause", prettyName: "Pause Animation" },
+    { name: "stop", prettyName: "Stop Animation" },
+];
+
 // Utility functions
 
 Module._getFilename = function( filename )

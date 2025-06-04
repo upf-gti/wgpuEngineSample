@@ -6,6 +6,7 @@ window.App = {
 
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
     selectedNode: null,
+    renderGrid: true,
 
     async init() {
 
@@ -31,9 +32,15 @@ window.App = {
         scene.addNode( skybox, -1 );
 
         WGE.Engine.onRender = () => {
+
+            if( this.renderGrid )
+            {
+                this.grid.render();
+            }
+
             scene.render();
 
-            if( this.selectedNode )
+            if( this.selectedNode && this.selectedNode.getTransform )
             {
                 const camera = this.renderer.getCamera();
                 const model = WGE.Transform.transformToMat4( this.selectedNode.getTransform() );
@@ -75,7 +82,7 @@ window.App = {
             grid.scale( new WGE.vec3(10.0) );
             grid.setFrustumCullingEnabled( false );
             grid.setSurfaceMaterialOverride( surface, gridMaterial );
-            scene.addNode( grid, -1 );
+            this.grid = grid;
         }
 
         // Create box
@@ -149,7 +156,10 @@ window.App = {
             this.gizmo = new WGE.Gizmo2D();
         }
 
-        this.initUI();
+        setTimeout( () => {
+            // Initialize the UI after the engine is ready
+            this.initUI();
+        }, 100 );
     },
 
     async initUI() {
@@ -173,15 +183,19 @@ window.App = {
                     { name: "Mesh", submenu: [
                         { name: "Box", callback: this.onAddMesh.bind( this ) },
                         { name: "Sphere", callback: this.onAddMesh.bind( this ) },
-                        // { name: "Torus", callback: this.onAddMesh.bind( this ) }
+                        { name: "Torus", callback: this.onAddMesh.bind( this ) }
                     ] },
-                    { name: "Light", callback: this.onAddNode.bind( this ) },
+                    { name: "Light", submenu: [
+                        { name: "Directional", callback: this.onAddLight.bind( this ) },
+                        { name: "Omni", callback: this.onAddLight.bind( this ) },
+                        { name: "Spot", callback: this.onAddLight.bind( this ) }
+                    ] },
                     { name: "Camera", callback: this.onAddNode.bind( this ) },
                 ]
             },
             {
                 name: "View", submenu: [
-                    { name: "Grid Helper", checked: true },
+                    { name: "Grid Helper", checked: this.renderGrid, callback: (name, value) => this.renderGrid = value },
                     null,
                     { name: "Fullscreen", checked: false }
                 ]
@@ -256,7 +270,8 @@ window.App = {
                 function fillSceneData( node, data ) {
                     const nodeData = {
                         id: node.name,
-                        children: []
+                        children: [],
+                        icon: node.constructor.icon,
                     };
 
                     data.push( nodeData );
@@ -281,8 +296,9 @@ window.App = {
                     onevent: (event) => {    
                         switch (event.type) {
                             case LX.TreeEvent.NODE_SELECTED:
-                                const index = sceneData.findIndex( n => n.id === event.node.id );
-                                this.selectedNode = this.scene.getNodes().get(index);
+                                //const index = sceneData.findIndex( n => n.id === event.node.id );
+                                // this.selectNode( this.scene.getNodes().get( index ) );
+                                this.selectNode( sceneData, event.node );
                                 break;
                             // case LX.TreeEvent.NODE_DELETED:
                             //     if (event.multiple)
@@ -318,9 +334,15 @@ window.App = {
         // Editor panels (This will be replaced by each node info)
         {
             const panelTabs = rightDown.addTabs();
-            panelTabs.add( "Object", document.createElement('div') );
-            panelTabs.add( "Geometry", document.createElement('div') );
-            panelTabs.add( "Material", document.createElement('div') );
+
+            this.objectPanel = new LX.Panel();
+            panelTabs.add( "Object", this.objectPanel );
+
+            this.geometryPanel = new LX.Panel();
+            panelTabs.add( "Geometry", this.geometryPanel );
+
+            this.materialPanel = new LX.Panel();
+            panelTabs.add( "Material", this.materialPanel );
         }
 
         document.body.addEventListener('dragenter', e => e.preventDefault() );
@@ -335,8 +357,8 @@ window.App = {
             const ext = LX.getExtension( file.name );
             switch(ext)
             {
-                case "glb": this.loadLocation(this._loadGltf, file); break;
-                case "ply": this.loadLocation(this._loadPly, file); break;
+                case "glb": this.loadScene(this._loadGltf, file); break;
+                case "ply": this.loadScene(this._loadPly, file); break;
             }
         });
 
@@ -347,6 +369,53 @@ window.App = {
 		document.body.appendChild( this.stats.dom );
     },
 
+    selectNode( sceneData, nodeData ) {
+        
+        // This should select the node in the scene tree
+        // and update the inspector panel
+        // Node could be in the root, or inside another node
+
+        const nodeId = nodeData.id;
+        let index = sceneData.findIndex( n => n.id === nodeId );
+        if( index >= 0 )
+        {
+            this.selectedNode = this.scene.getNodes().get( index );
+        }
+        else
+        {
+            let path = [];
+            
+            while( nodeData.parent )
+            {
+                nodeData = nodeData.parent;
+                path.push( nodeData.id );
+            }
+            
+            if( !path.length )
+            {
+                console.warn( `Node ${ nodeId } not found in the scene.` );
+                return;
+            }
+
+            path = path.reverse();
+            path.push( nodeId );
+            const parentId = path.shift();
+            let parentIdx = sceneData.findIndex( n => n.id === parentId );
+            const parentNode = this.scene.getNodes().get( parentIdx );
+            this.selectedNode = parentNode.getNode( path.join("/") );
+        }
+
+        if( this.selectedNode )
+        {
+            this.inspectNode( this.selectedNode );
+        }
+        else
+        {
+            console.warn( `Node ${ nodeId } not found in the scene.` );
+        }
+
+    },
+
     onNewScene() {
         LX.prompt("Are you sure you want to create a new scene? This will discard the current scene.", "New Scene", (ok) => {}, { input: false });
     },
@@ -354,7 +423,7 @@ window.App = {
     onAddMesh( geometryType ) {
 
         const mesh = new WGE.MeshInstance3D();
-        mesh.name = "New Mesh";
+        mesh.name = "New_Mesh_" + LX.guidGenerator();
 
         // Add a surface
         let surface = null;
@@ -363,10 +432,10 @@ window.App = {
         {
             surface = WGE.RendererStorage.getSurface("sphere");
         }
-        // else if( geometryType === "Torus" )
-        // {
-        //     surface = WGE.RendererStorage.getSurface("torus");
-        // }
+        else if( geometryType === "Torus" )
+        {
+            surface = WGE.RendererStorage.getSurface("torus");
+        }
         else if( geometryType === "Box" )
         {
             surface = WGE.RendererStorage.getSurface("box");
@@ -384,6 +453,32 @@ window.App = {
         mesh.setSurfaceMaterialOverride( surface, material );
         this.scene.addNode( mesh, -1 );
 
+        this.sceneTreePanel.refresh();
+    },
+
+    onAddLight( lightType ) {
+
+        let light = null;
+
+        if( lightType === "Directional" )
+        {
+            light = new WGE.DirectionalLight3D();
+        }
+        else if( lightType === "Omni" )
+        {
+            light = new WGE.OmniLight3D();
+        }
+        else if( lightType === "Spot" )
+        {
+            light = new WGE.SpotLight3D();
+        }
+        else
+        {
+            throw new Error( `Unknown light type: ${ lightType }` );
+        }
+
+        light.name = "New_Light_" + LX.guidGenerator();
+        this.scene.addNode( light, -1 );
         this.sceneTreePanel.refresh();
     },
 
@@ -410,7 +505,155 @@ window.App = {
         const camera = new WGE.Camera3D();
     },
 
-    loadLocation( loader, file, data ) {
+    inspectNode( node ) {
+
+        this.inspectPropertiesAndMethods( node, this.objectPanel );
+
+        // Has geometry?
+        if( node.getSurface )
+        {
+            const surface = node.getSurface( 0 );
+            this.inspectPropertiesAndMethods( surface, this.geometryPanel );
+        }
+        else
+        {
+            this.geometryPanel.clear();
+        }
+
+        const material = this._getNodeMaterial( node );
+        if( material )
+        {
+            this.inspectPropertiesAndMethods( material, this.materialPanel );
+        }
+        else
+        {
+            this.materialPanel.clear();
+        }
+    },
+
+    inspectPropertiesAndMethods( obj, panel, options = {} ) {
+
+        panel.clear();
+
+        if( obj.constructor.properties?.length )
+        {
+            panel.branch( "Properties" );
+
+            for( let p of obj.constructor.properties )
+            {
+                const widgetName = p.prettyName ?? p.name;
+
+                switch( p.type )
+                {
+                    case Number:
+                        panel.addNumber( widgetName, obj[ p.name ], value => obj[ p.name ] = value, { min: p.min, max: p.max, step: p.step, skipSlider: true, disabled: p.disabled, units: p.units } );
+                        break;
+                    case String:
+                        panel.addText( widgetName, obj[ p.name ], value => {
+                            obj[ p.name ] = value;
+                            if( p.name === "name" )
+                            {
+                                this.sceneTreePanel.refresh();
+                            }
+                        }, { disabled: p.disabled } );
+                        break;
+                    case Boolean:
+                        panel.addCheckbox( widgetName, obj[ p.name ], value => obj[ p.name ] = value, { disabled: p.disabled } );
+                        break;
+                    case WGE.vec3:
+                    {
+                        const value = obj[ p.name ] ?? new WGE.vec3( 0.0, 0.0, 0.0 );
+                        panel.addVector3( widgetName, [ value.x, value.y, value.z ], value => {
+                            obj[ p.name ] = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
+                        }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
+                        break;
+                    }
+                    case WGE.vec4:
+                    {
+                        const value = obj[ p.name ] ?? new WGE.vec4( 0.0, 0.0, 0.0, 1.0 );
+                        panel.addVector4( widgetName, [ value.x, value.y, value.z, value.w ], value => {
+                            obj[ p.name ] = new WGE.vec4( value[ 0 ], value[ 1 ], value[ 2 ], value[ 3 ] );
+                        }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
+                        break;
+                    }
+                    case WGE.Transform:
+                    {
+                        let transform = obj[ p.name ];
+                        console.assert( transform );
+                        window.transform = transform; // For debugging purposes
+
+                        // Position
+                        {
+                            const value = transform.position;
+                            panel.addVector3( "Position", [ value.x, value.y, value.z ], value => {
+                                let transform = obj.transform;
+                                transform.position = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
+                                obj.transform = transform;
+                            }, { min: -10, max: 10, step: 0.1, disabled: p.disabled } );
+                        }
+                        // Scale
+                        {
+                            const value = transform.scale;
+                            panel.addVector3( "Scale", [ value.x, value.y, value.z ], value => {
+                                let transform = obj.transform;
+                                transform.scale = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
+                                obj.transform = transform;
+                            }, { min: -10, max: 10, step: 0.1, disabled: p.disabled } );
+                        }
+                        // Rotation
+                        {
+                            const value = transform.rotation;
+                            panel.addVector4( "Rotation", [ value.x, value.y, value.z, value.w ], value => {
+                                let transform = obj.transform;
+                                transform.rotation = new WGE.quat( value[ 0 ], value[ 1 ], value[ 2 ], value[ 3 ] );
+                                obj.transform = transform;
+                            }, { min: -1, max: 1, step: 0.1, disabled: p.disabled } );
+                        }
+                        // transform.delete();
+                        break;
+                    }
+                    case "Enum":
+                    {
+                        const values = Object.values( WGE[ p.enum ].values ).map( v => v.constructor.name.replace( `${ p.enum }_`, "" ) )
+                        panel.addSelect( widgetName, values, values[ obj[ p.name ].value ?? obj[ p.name ] ], value => {
+                            obj[ p.name ] = WGE[ p.enum ][ value ].value;
+                        }, { disabled: p.disabled } );
+                        break;
+                    }
+                    case WGE.Texture:
+                    {
+                        panel.addText( widgetName, "", value => {
+                            p.setter.call( obj, value );
+                        }, { disabled: p.disabled } );
+                        break;
+                    }
+                    default:
+                        console.warn( `Property type ${ p.type } not supported.` );
+                }
+            }
+        }
+
+        if( !obj.constructor.methods || !obj.constructor.methods.length )
+        {
+            return;
+        }
+
+        panel.branch( "Methods" );
+
+        for( let p of obj.constructor.methods )
+        {
+            const widgetName = p.prettyName ?? p.name;
+
+            panel.addButton( null, widgetName, () => {
+                if( obj[ p.name ] )
+                {
+                    obj[ p.name ]( "Walk", 0.0, -1.0, 1.0 );
+                }
+            }, {  } );
+        }
+    },
+
+    loadScene( loader, file, data ) {
 
         if( !data )
         {
@@ -437,6 +680,18 @@ window.App = {
         loader.call(this, file.name ?? file, data );
     },
 
+    _getNodeMaterial( node, surfaceIndex = 0 ) {
+
+        // No node or no MeshInstance3D
+        if( !node || !node.getSurface )
+        {
+            return null;
+        }
+
+        const surface = node.getSurface( surfaceIndex );
+        const material = node.getSurfaceMaterialOverride ? node.getSurfaceMaterialOverride( surface ) : null;
+        return material ?? surface.material;
+    },
    
     _loadGltf( name, buffer ) {
 
