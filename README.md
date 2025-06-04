@@ -1,6 +1,10 @@
 # wgpuEngineSample
 
-This repository is a sample project using [wgpuEngine](https://github.com/upf-gti/wgpuEngine), the engine used in [Rooms](https://github.com/upf-gti/rooms).
+This repository contains a sample project with XR enabled using [wgpuEngine](https://github.com/upf-gti/wgpuEngine), the engine used in [Rooms](https://github.com/upf-gti/rooms), our immersive XR sculpting (SDF based) application.
+
+### Experimental
+
+A simple live web editor is hosted [here](https://upf-gti.github.io/wgpuEngineSample/) using experimental C++ to JavaScript bindings.
 
 ## How to build
 
@@ -42,3 +46,7 @@ python -m http.server
 ```
 
 And access the webpage using a browser with WebGPU support using the link: ``localhost:8000/sample_project.html``
+
+## Feedback/Issues
+
+You can use the [repository issues section](https://github.com/upf-gti/wgpuEngineSample/issues) or simply write any feedback to the contributors!
