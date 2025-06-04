@@ -1,26 +1,15 @@
 #include "engine/sample_engine.h"
 #include "graphics/sample_renderer.h"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <emscripten/html5.h>
-#include <emscripten/bind.h>
-
-// Binding code
-EMSCRIPTEN_BINDINGS(_Class_) {
-
-    emscripten::class_<SampleEngine>("Engine")
-        .constructor<>()
-        .class_function("getInstance", &SampleEngine::get_sample_instance, emscripten::return_value_policy::reference())
-        .function("setWasmModuleInitialized", &SampleEngine::set_wasm_module_initialized)
-        .function("appendGLB", &SampleEngine::append_glb);
-}
-
-#endif
-
 int main()
 {
+    // Debug for testing js bindings
+#ifdef __EMSCRIPTEN__
+    Engine* engine = new Engine();
+#else
     SampleEngine* engine = new SampleEngine();
+#endif
+
     SampleRenderer* renderer = new SampleRenderer();
 
     sEngineConfiguration configuration = {
