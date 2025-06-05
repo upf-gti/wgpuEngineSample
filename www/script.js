@@ -7,6 +7,7 @@ window.App = {
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
     selectedNode: null,
     renderGrid: true,
+    scripts: {},
 
     async init() {
 
@@ -120,13 +121,13 @@ window.App = {
         // Parse a glTF file
         {
             // Method 1: Await
-            // const nodes = await WGE.parseGltf( "right_controller.glb" );
-            // scene.addNodes( nodes, -1 );
+            const nodes = await WGE.parseGltf( "https://threejs.org/examples/models/gltf/Soldier.glb" );
+            scene.addNodes( nodes, -1 );
 
             // Method 2: Use callback
-            const nodes = WGE.parseGltf( "https://threejs.org/examples/models/gltf/Soldier.glb", null, ( nodes ) => {
-                scene.addNodes( nodes, -1 );
-            });
+            // const nodes = WGE.parseGltf( "https://threejs.org/examples/models/gltf/Soldier.glb", null, ( nodes ) => {
+            //     scene.addNodes( nodes, -1 );
+            // });
         }
 
         // Parse an Obj file
@@ -139,6 +140,14 @@ window.App = {
             const meshInstance3D = WGE.parseObj( "torus.obj", true, ( meshInstance3D ) => {
                 scene.addNode( meshInstance3D, -1 );
                 window.torus = meshInstance3D; // Store the torus mesh instance globally for debugging
+
+                // const torusMaterial = meshInstance3D.getSurfaceMaterial();
+                // // torusMaterial.cullType = WGE.CullType.CULL_NONE;
+                // torusMaterial.color = new WGE.vec4(1, 0, 1, 1);
+                // torusMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", torusMaterial ) );
+
+                // const torusSurface = meshInstance3D.getSurface( 0 );
+                // meshInstance3D.setSurfaceMaterialOverride( torusSurface, torusMaterial );
             });
         }
 
@@ -255,9 +264,12 @@ window.App = {
 
         const [ rightUp, rightDown ] = right.split({ type: "vertical", sizes: ["40%", "60%"] });
 
+        const upTabs = rightUp.addTabs( { fit: true });
+
         // Scene Tree
         {
-            this.sceneTreePanel = rightUp.addPanel();
+            this.sceneTreePanel = new LX.Panel();
+            upTabs.add( "Scene", this.sceneTreePanel );
 
             this.sceneTreePanel.refresh = () => {
 
@@ -331,9 +343,18 @@ window.App = {
             this.sceneTreePanel.refresh();
         }
 
+        // Project
+        {
+            this.projectPanel = new LX.Panel();
+            upTabs.add( "Project", this.projectPanel );
+
+
+        }
+
         // Editor panels (This will be replaced by each node info)
         {
-            const panelTabs = rightDown.addTabs();
+            const panelTabs = this.nodePanelTabs = rightDown.addTabs();
+            panelTabs.root.style.width = "calc( 100% - 4px )";
 
             this.objectPanel = new LX.Panel();
             panelTabs.add( "Object", this.objectPanel );
@@ -343,6 +364,9 @@ window.App = {
 
             this.materialPanel = new LX.Panel();
             panelTabs.add( "Material", this.materialPanel );
+
+            this.scriptPanel = new LX.Panel();
+            panelTabs.add( "Script", this.scriptPanel );
         }
 
         document.body.addEventListener('dragenter', e => e.preventDefault() );
@@ -507,13 +531,16 @@ window.App = {
 
     inspectNode( node ) {
 
+        let hasGeometry = false, hasMaterial = false, hasScript = false;
+
         this.inspectPropertiesAndMethods( node, this.objectPanel );
 
         // Has geometry?
-        if( node.getSurface )
+        if( node instanceof WGE.MeshInstance3D )
         {
             const surface = node.getSurface( 0 );
             this.inspectPropertiesAndMethods( surface, this.geometryPanel );
+            hasGeometry = true;
         }
         else
         {
@@ -524,11 +551,27 @@ window.App = {
         if( material )
         {
             this.inspectPropertiesAndMethods( material, this.materialPanel );
+            hasMaterial = true;
         }
         else
         {
             this.materialPanel.clear();
         }
+
+        // Everyone can have a script?
+        if( true )
+        {
+            this.inspectScripts( node, this.scriptPanel );
+            hasScript = true;
+        }
+        else
+        {
+            this.scriptPanel.clear();
+        }
+
+        this.nodePanelTabs.tabDOMs[ "Geometry" ].classList.toggle( "hidden", !hasGeometry );
+        this.nodePanelTabs.tabDOMs[ "Material" ].classList.toggle( "hidden", !hasMaterial );
+        this.nodePanelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", !hasScript );
     },
 
     inspectPropertiesAndMethods( obj, panel, options = {} ) {
@@ -653,6 +696,49 @@ window.App = {
         }
     },
 
+    inspectScripts( node, panel, options = {} ) {
+
+        panel.clear();
+
+        const nodeUid = node.sceneUID;
+        const scripts = this.scripts[ nodeUid ] ?? [];
+
+        panel.addButton( null, "New Script", () => {
+
+            this.scripts[ nodeUid ] = this.scripts[ nodeUid ] ?? [];
+            this.scripts[ nodeUid ].push( {
+                name: "script_" + LX.guidGenerator(),
+                code: ""
+            } );
+
+            this.inspectNode( node );
+
+        }, { buttonClass: "contrast" } );
+
+        if( !scripts.length )
+        {
+            return;
+        }
+
+        panel.addSeparator();
+
+        for( let s of scripts )
+        {
+            panel.sameLine(3);
+            const nameWidget = panel.addText( null, s.name, v => s.name = v );
+            nameWidget.root.style.flex = 1;
+            panel.addButton( null, "Edit", () => {
+                // TODO
+                // ...
+            }, { icon: "Edit", xtooltip: true, title: "Edit" } );
+            panel.addButton( null, "Remove", () => {
+                const idx = scripts.indexOf( s );
+                scripts.splice( idx, 1 );
+                this.inspectNode( node );
+            }, { icon: "Trash2", xtooltip: true, title: "Remove" } );
+        }
+    },
+
     loadScene( loader, file, data ) {
 
         if( !data )
@@ -695,32 +781,32 @@ window.App = {
    
     _loadGltf( name, buffer ) {
 
-        name = name.substring( name.lastIndexOf( '/' ) + 1 );
-        
-        console.log( "Loading glb", [ name, buffer ] );
+        const gltfFilePath = Module._getFilename( name );
+        console.log( "Loading glb", [ gltfFilePath, buffer ] );
 
-        this._fileStore( name, buffer );
+        Module._writeFile( gltfFilePath, buffer );
 
-        window.engineInstance.appendGLB( name );
+        const nodes = new WGE.VectorNodePtr();
+        const parser = new WGE.GltfParser();
+        parser.parse( gltfFilePath, nodes, WGE.ParseFlags.PARSE_DEFAULT.value );
+        this.scene.addNodes( nodes, -1 );
+
+        this.sceneTreePanel.refresh();
     },
 
     _loadPly( name, buffer ) {
 
-        name = name.substring( name.lastIndexOf( '/' ) + 1 );
+        const plyFilePath = Module._getFilename( name );
+        console.log( "Loading ply", [ plyFilePath, buffer ] );
 
-        console.log( "Loading ply", [ name, buffer ] );
+        Module._writeFile( plyFilePath, buffer );
 
-        this._fileStore( name, buffer );
+        const nodes = new WGE.VectorNodePtr();
+        const parser = new WGE.PlyParser();
+        parser.parse( plyFilePath, nodes, WGE.ParseFlags.PARSE_DEFAULT.value );
+        this.scene.addNodes( nodes, -1 );
 
-        window.engineInstance.loadPly( name );
-    },
-
-    _fileStore( filename, buffer ) {
-
-        let data = new Uint8Array( buffer );
-        let stream = FS.open( filename, 'w+' );
-        FS.write( stream, data, 0, data.length, 0 );
-        FS.close( stream );
+        this.sceneTreePanel.refresh();
     },
 
     _requestBinary( url, nocache ) {

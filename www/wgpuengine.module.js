@@ -50,16 +50,30 @@ wgpuEngine.Environment3D.prototype.setTexture = async function( texturePath ) {
     }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
-wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
-    const gltfFilePath = Module._getFilename( gltfPath );
-    return await Module._requestBinary( gltfPath ).then( data => {
-        Module._writeFile( gltfFilePath, data );
+wgpuEngine.parse = async function( parser, path, nodes, onLoad ) {
+    const filePath = Module._getFilename( path );
+    return await Module._requestBinary( path ).then( data => {
+        Module._writeFile( filePath, data );
         nodes = nodes ?? new wgpuEngine.VectorNodePtr();
-        const parser = new wgpuEngine.GltfParser();
-        parser.parse( gltfFilePath, nodes, wgpuEngine.ParseFlags.PARSE_DEFAULT.value );
+        parser.parse( filePath, nodes, wgpuEngine.ParseFlags.PARSE_DEFAULT.value );
         if( onLoad ) onLoad( nodes );
         return nodes;
     }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
+}
+
+wgpuEngine.parseGltf = async function( gltfPath, nodes, onLoad ) {
+    const parser = new wgpuEngine.GltfParser();
+    return await wgpuEngine.parse( parser, gltfPath, nodes, onLoad );
+}
+
+wgpuEngine.parsePly = async function( plyPath, nodes, onLoad ) {
+    const parser = new wgpuEngine.PlyParser();
+    return await wgpuEngine.parse( parser, plyPath, nodes, onLoad );
+}
+
+wgpuEngine.parseVdb = async function( vdbPath, nodes, onLoad ) {
+    const parser = new wgpuEngine.VdbParser();
+    return await wgpuEngine.parse( parser, plyPath, nodes, onLoad );
 }
 
 wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
@@ -198,12 +212,16 @@ Module._getCurrentFunctionName = function()
     const err = new Error();
     const stack = err.stack?.split('\n');
 
-    if (stack && stack.length >= 3) {
-        const match = stack[3].match(/at (.*?) \(/);
-        return match ? match[1] : 'anonymous';
+    let errorStr = `${ stack.shift() }: `;
+    stack.shift(); // Remove "_getCurrentFunctionName" from the stack
+    for( let l of stack )
+    {
+        const match = l.match(/(.*?) \(/);
+        if( !match ) continue;
+        errorStr += `\n${ match[ 1 ] }`;
     }
 
-    return 'unknown';
+    return errorStr;
 }
 
 Module._writeFile = function( filename, data )

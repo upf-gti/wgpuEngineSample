@@ -112,7 +112,7 @@ if (EMSCRIPTEN)
     # See https://github.com/kainino0x/webgpu-cross-platform-demo/tree/dawnwasm for a sample setup
 
     # Add Embind bindings to JS from the engine's binding file
-    target_sources(${PROJECT_NAME} PRIVATE ${SAMPLE_PROJECT_DIR_ROOT}/libraries/wgpuEngine/embind_bindings.cpp)
+    target_sources(${PROJECT_NAME} PRIVATE ${SAMPLE_PROJECT_DIR_LIBS}/wgpuEngine/embind_bindings.cpp)
 
     target_link_options(${PROJECT_NAME} PRIVATE
 
