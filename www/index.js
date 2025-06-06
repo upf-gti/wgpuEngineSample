@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\alexr\AppData\Local\Temp\tmp6y38o5rs.js
+// include: C:\Users\alexr\AppData\Local\Temp\tmprguamla5.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -221,7 +221,7 @@ Module['FS_createPath']("/data/textures", "environments", true, true);
 
   })();
 
-// end include: C:\Users\alexr\AppData\Local\Temp\tmp6y38o5rs.js
+// end include: C:\Users\alexr\AppData\Local\Temp\tmprguamla5.js
 
 
 var arguments_ = [];
@@ -11511,6 +11511,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 
 // end include: postlibrary.js
 
+function is_canvas_focused() { const el = document.activeElement; return !(el && (el.tagName == "INPUT" || el.tagName == "TEXTAREA" || el.isContentEditable)) && (el.tagName == "CANVAS"); }
 function on_engine_pre_initialized() { onEnginePreInitialized(); }
 function on_engine_initialized() { onEngineInitialized(); }
 function on_end_frame() { if (Module.Engine.onFrame) { Module.Engine.onFrame(); } }
@@ -11735,6 +11736,8 @@ var wasmImports = {
   glfwTerminate: _glfwTerminate,
   /** @export */
   glfwWindowHint: _glfwWindowHint,
+  /** @export */
+  is_canvas_focused,
   /** @export */
   on_end_frame,
   /** @export */
