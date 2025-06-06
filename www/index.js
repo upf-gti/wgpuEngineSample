@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\alexr\AppData\Local\Temp\tmpkhkq3okh.js
+// include: C:\Users\alexr\AppData\Local\Temp\tmp6y38o5rs.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -221,7 +221,7 @@ Module['FS_createPath']("/data/textures", "environments", true, true);
 
   })();
 
-// end include: C:\Users\alexr\AppData\Local\Temp\tmpkhkq3okh.js
+// end include: C:\Users\alexr\AppData\Local\Temp\tmp6y38o5rs.js
 
 
 var arguments_ = [];
