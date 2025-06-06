@@ -10,14 +10,15 @@
     <script type="importmap">
         {
           "imports": {
-            "lexgui": "https://cdn.skypack.dev/lexgui/build/lexgui.module.js"
+            "lexgui": "https://cdn.skypack.dev/lexgui/build/lexgui.module.js",
+            "lexgui/components/": "https://cdn.skypack.dev/lexgui/build/components/"
           }
         }
     </script>
 </head>
 
 <body>
-    <button id="xr-button" style="z-index:10;position:absolute;top:5%;left:1%" disabled>WebXR or WebGPU not supported</button>
+    <button id="xr-button" style="z-index:10;position:absolute;top:1%;left:30%" disabled>WebXR or WebGPU not supported</button>
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1
             style="height:100%;width:100%;resize:both;outline:none;"></canvas>
     <template id="main-script">

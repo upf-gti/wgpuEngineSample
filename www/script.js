@@ -1,5 +1,7 @@
 
 import { LX } from 'lexgui';
+import 'lexgui/components/codeeditor.js';
+
 import { wgpuEngine as WGE } from './wgpuengine.module.js';
 
 window.App = {
@@ -7,9 +9,25 @@ window.App = {
     dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
     selectedNode: null,
     renderGrid: true,
+    running: false,
     scripts: {},
+    defaultNodeScript: `// Add Start, Update and Render logic for your node:
+
+this.onStart = function() {
+    // console.log("Started", this.name);
+};
+this.onUpdate = function(dt) {
+    // console.log("onUpdate", this.name);
+    this.rotate( WGE.radians( 100.0 * dt ), new WGE.vec3(0.0, 0.0, 1.0) );
+};
+this.onRender = function() {
+    // console.log("onRender", this.name);
+};
+`,
 
     async init() {
+
+        window.LX = LX;
 
         this.engine = window.engineInstance;
         this.renderer = this.engine.getRenderer();
@@ -41,6 +59,18 @@ window.App = {
 
             scene.render();
 
+            // debug: run scripts
+            if( this.running )
+            {
+                for( const nodeUid in this.scripts )
+                {
+                    for( const s of this.scripts[ nodeUid ] )
+                    {
+                        s.node.onRender();
+                    }
+                }
+            }
+
             if( this.selectedNode && this.selectedNode.getTransform )
             {
                 const camera = this.renderer.getCamera();
@@ -57,10 +87,22 @@ window.App = {
 
             scene.update( dt );
 
-            if( window.torus )
+            // debug: run scripts
+            if( this.running )
             {
-                window.torus.rotate( WGE.radians( 100.0 * dt ), new WGE.vec3(0.0, 0.0, 1.0) );
+                for( const nodeUid in this.scripts )
+                {
+                    for( const s of this.scripts[ nodeUid ] )
+                    {
+                        s.node.onUpdate( dt );
+                    }
+                }
             }
+
+            // if( window.torus )
+            // {
+            //     window.torus.rotate( WGE.radians( 100.0 * dt ), new WGE.vec3(0.0, 0.0, 1.0) );
+            // }
 
             if( this.stats )
                 this.stats.update();
@@ -220,6 +262,16 @@ window.App = {
 
         ], { sticky: false });
 
+        menubar.addButtons( [
+            { title: "Play", icon: "Play", swap: "Stop", callback: ( value ) => {
+                const ok = this.runScene( value );
+                if( value && !ok )
+                {
+                    const playButton = menubar.getButton("Play");
+                    playButton.swap();
+                }
+            } }
+        ] );
 
         var [ left, right ] = area.split({ sizes: ["80%", "20%"] });
         left.root.id = "canvas-area";
@@ -262,6 +314,17 @@ window.App = {
             }
         ], { float: "htr" });
 
+        // Add code editor area
+        {
+            this.codeEditorArea = new LX.Area({ className: "absolute top-0 left-0 z-100" });
+            this.codeEditorArea.root.style.opacity = 0.95;
+            const closeEditorIcon = LX.makeIcon( "X", { iconClass: "absolute top-0 right-0 mr-2 mt-2 z-10" } );
+            closeEditorIcon.listen( "click", this.closeEditor.bind( this ) );
+            this.codeEditorArea.attach( closeEditorIcon );
+            left.attach( this.codeEditorArea );
+            this.closeEditor();
+        }
+
         const [ rightUp, rightDown ] = right.split({ type: "vertical", sizes: ["40%", "60%"] });
 
         const upTabs = rightUp.addTabs( { fit: true });
@@ -275,11 +338,22 @@ window.App = {
 
                 this.sceneTreePanel.clear();
 
-                let sceneData = [{
-                    id: "Camera",
-                    children: [],
-                    icon: "Camera",
-                }];
+                let sceneData = [
+                    {
+                        id: "Camera",
+                        children: [],
+                        icon: "Camera",
+                        skipVisibility: true,
+                        node: this.renderer.getCamera()
+                    },
+                    {
+                        id: "Scene",
+                        children: [],
+                        icon: "Trees",
+                        skipVisibility: true,
+                        node: this.scene
+                    }
+                ];
 
                 // Fill scene data recursively through the scene nodes and its children
 
@@ -288,6 +362,8 @@ window.App = {
                         id: node.name,
                         children: [],
                         icon: node.constructor.icon,
+                        skipVisibility: true,
+                        node
                     };
 
                     data.push( nodeData );
@@ -312,9 +388,7 @@ window.App = {
                     onevent: (event) => {    
                         switch (event.type) {
                             case LX.TreeEvent.NODE_SELECTED:
-                                //const index = sceneData.findIndex( n => n.id === event.node.id );
-                                // this.selectNode( this.scene.getNodes().get( index ) );
-                                this.selectNode( sceneData, event.node );
+                                this.selectNode( event.node.node );
                                 break;
                             // case LX.TreeEvent.NODE_DELETED:
                             //     if (event.multiple)
@@ -371,6 +445,11 @@ window.App = {
 
             this.scriptPanel = new LX.Panel();
             panelTabs.add( "Script", this.scriptPanel );
+
+            panelTabs.tabDOMs[ "Object" ].classList.toggle( "hidden", true );
+            panelTabs.tabDOMs[ "Geometry" ].classList.toggle( "hidden", true );
+            panelTabs.tabDOMs[ "Material" ].classList.toggle( "hidden", true );
+            panelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", true );
         }
 
         document.body.addEventListener('dragenter', e => e.preventDefault() );
@@ -397,46 +476,9 @@ window.App = {
 		document.body.appendChild( this.stats.dom );
     },
 
-    selectNode( sceneData, nodeData ) {
+    selectNode( node ) {
         
-        // This should select the node in the scene tree
-        // and update the inspector panel
-        // Node could be in the root, or inside another node
-
-        const nodeId = nodeData.id;
-        const index = sceneData.findIndex( n => n.id === nodeId );
-
-        if( nodeData.icon == "Camera" )
-        {
-            this.selectedNode = this.renderer.getCamera();
-        }
-        else if( index >= 0 )
-        {
-            this.selectedNode = this.scene.getNodes().get( index - 1 );
-        }
-        else
-        {
-            let path = [];
-            
-            while( nodeData.parent )
-            {
-                nodeData = nodeData.parent;
-                path.push( nodeData.id );
-            }
-            
-            if( !path.length )
-            {
-                console.warn( `Node ${ nodeId } not found in the scene.` );
-                return;
-            }
-
-            path = path.reverse();
-            path.push( nodeId );
-            const parentId = path.shift();
-            let parentIdx = sceneData.findIndex( n => n.id === parentId );
-            const parentNode = this.scene.getNodes().get( parentIdx );
-            this.selectedNode = parentNode.getNode( path.join("/") );
-        }
+        this.selectedNode = node;
 
         if( this.selectedNode )
         {
@@ -444,7 +486,7 @@ window.App = {
         }
         else
         {
-            console.warn( `Node ${ nodeId } not found in the scene.` );
+            console.warn( `Node ${ node.name } not found!` );
         }
 
     },
@@ -556,7 +598,7 @@ window.App = {
             this.geometryPanel.clear();
         }
 
-        const material = this._getNodeMaterial( node );
+        const material = this.getNodeMaterial( node );
         if( material )
         {
             this.inspectPropertiesAndMethods( material, this.materialPanel );
@@ -568,7 +610,7 @@ window.App = {
         }
 
         // Everyone can have a script?
-        if( true )
+        if( !( node instanceof WGE.Camera ) )
         {
             this.inspectScripts( node, this.scriptPanel );
             hasScript = true;
@@ -578,6 +620,7 @@ window.App = {
             this.scriptPanel.clear();
         }
 
+        this.nodePanelTabs.tabDOMs[ "Object" ].classList.toggle( "hidden", false );
         this.nodePanelTabs.tabDOMs[ "Geometry" ].classList.toggle( "hidden", !hasGeometry );
         this.nodePanelTabs.tabDOMs[ "Material" ].classList.toggle( "hidden", !hasMaterial );
         this.nodePanelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", !hasScript );
@@ -769,18 +812,19 @@ window.App = {
 
         panel.clear();
 
-        const nodeUid = node.sceneUID;
+        const nodeUid = `${ node.name }_${ node.sceneUID }`;
         const scripts = this.scripts[ nodeUid ] ?? [];
 
         panel.addButton( null, "New Script", () => {
 
             this.scripts[ nodeUid ] = this.scripts[ nodeUid ] ?? [];
-            this.scripts[ nodeUid ].push( {
-                name: "script_" + LX.guidGenerator(),
-                code: ""
-            } );
+
+            const newScript = { name: "script_" + LX.guidGenerator() + ".js", node };
+            this.scripts[ nodeUid ].push( newScript );
 
             this.inspectNode( node );
+
+            this.openScript( newScript );
 
         }, { buttonClass: "contrast" } );
 
@@ -793,12 +837,18 @@ window.App = {
 
         for( let s of scripts )
         {
-            panel.sameLine(3);
-            const nameWidget = panel.addText( null, s.name, v => s.name = v );
+            panel.sameLine( 3 );
+            const nameWidget = panel.addText( null, s.name, v => {
+                const scriptCode = this.codeEditor.getText();
+                // this.codeEditor.closeTab( s.name, true );
+                this.codeEditor.tabs.delete( s.name );
+                s.name = v;
+                this.codeEditor.loadTab( s.name );
+                this.codeEditor.setText( scriptCode, "JavaScript" );
+            });
             nameWidget.root.style.flex = 1;
             panel.addButton( null, "Edit", () => {
-                // TODO
-                // ...
+                this.openScript( s );
             }, { icon: "Edit", xtooltip: true, title: "Edit" } );
             panel.addButton( null, "Remove", () => {
                 const idx = scripts.indexOf( s );
@@ -806,6 +856,85 @@ window.App = {
                 this.inspectNode( node );
             }, { icon: "Trash2", xtooltip: true, title: "Remove" } );
         }
+    },
+
+    closeEditor() {
+        this.codeEditorArea.root.classList.toggle( "hidden", true );
+    },
+
+    openEditor() {
+        this.codeEditorArea.root.classList.toggle( "hidden", false );
+    },
+
+    openScript( script ) {
+
+        const node = script.node;
+
+        this.openEditor();
+
+        if( !this.codeEditor )
+        {
+            this.codeEditor = new LX.CodeEditor( this.codeEditorArea, {
+                skipInfo: true,
+                allowAddScripts: false,
+                name: script.name,
+                onsave: ( code ) => {
+                    if( this.running )
+                    {
+                        this.runScene( true );
+                    }
+                },
+                onrun: ( code ) => {} // Disable default behaviour
+            } );
+            this.codeEditor.setText( this.defaultNodeScript, "JavaScript" );
+        }
+        else
+        {
+            this.codeEditor.loadTab( script.name );
+        }
+    },
+
+    attachScriptToNode( node, scriptCode ) {
+        try {
+            const scriptFunc = new Function( scriptCode );
+            scriptFunc.call( node );
+
+            node.onStart ??= () => {};
+            node.onRender ??= () => {};
+            node.onUpdate ??= (dt) => {};
+
+        } catch (e) {
+            console.error("Error compiling script for node:", e );
+        }
+    },
+
+    runScene( run ) {
+
+        let allowRun = false;
+
+        // Update node scripts
+        if( run )
+        {
+            for( const nodeUid in this.scripts )
+            {
+                const scripts = this.scripts[ nodeUid ];
+
+                for( const s of scripts )
+                {
+                    const node = s.node;
+                    const code = this.codeEditor.loadedTabs[ s.name ].lines.join( '\n' );
+                    this.attachScriptToNode( node, code );
+
+                    // Run onStart
+                    node.onStart();
+                    allowRun = true; // Allow run if at least 1 node is executed
+                }
+            }
+        }
+
+        this.running = ( run && allowRun );
+
+        return allowRun;
     },
 
     loadScene( loader, file, data ) {
@@ -835,7 +964,7 @@ window.App = {
         loader.call(this, file.name ?? file, data );
     },
 
-    _getNodeMaterial( node, surfaceIndex = 0 ) {
+    getNodeMaterial( node, surfaceIndex = 0 ) {
 
         // No node or no MeshInstance3D
         if( !node || !node.getSurface )
@@ -876,42 +1005,6 @@ window.App = {
         this.scene.addNodes( nodes, -1 );
 
         this.sceneTreePanel.refresh();
-    },
-
-    _requestBinary( url, nocache ) {
-
-        return new Promise((resolve, reject) => {
-
-            const dataType = "arraybuffer";
-            const mimeType = "application/octet-stream";
-
-            //regular case, use AJAX call
-            var xhr = new XMLHttpRequest();
-            xhr.open( 'GET', url, true );
-            xhr.responseType = dataType;
-            xhr.overrideMimeType( mimeType );
-
-            if( nocache )
-                xhr.setRequestHeader('Cache-Control', 'no-cache');
-
-            xhr.onload = function(load)
-            {
-                var response = this.response;
-                if( this.status != 200)
-                {
-                    var err = "Error " + this.status;
-                    reject(err);
-                    return;
-                }
-                resolve( response );
-            };
-            xhr.onerror = function(err) {
-                reject(err);
-            };
-
-            xhr.send();
-            return xhr;
-        });
     }
 };
 
