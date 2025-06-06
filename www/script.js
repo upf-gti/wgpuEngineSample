@@ -275,7 +275,11 @@ window.App = {
 
                 this.sceneTreePanel.clear();
 
-                let sceneData = [];
+                let sceneData = [{
+                    id: "Camera",
+                    children: [],
+                    icon: "Camera",
+                }];
 
                 // Fill scene data recursively through the scene nodes and its children
 
@@ -400,10 +404,15 @@ window.App = {
         // Node could be in the root, or inside another node
 
         const nodeId = nodeData.id;
-        let index = sceneData.findIndex( n => n.id === nodeId );
-        if( index >= 0 )
+        const index = sceneData.findIndex( n => n.id === nodeId );
+
+        if( nodeData.icon == "Camera" )
         {
-            this.selectedNode = this.scene.getNodes().get( index );
+            this.selectedNode = this.renderer.getCamera();
+        }
+        else if( index >= 0 )
+        {
+            this.selectedNode = this.scene.getNodes().get( index - 1 );
         }
         else
         {
@@ -584,12 +593,27 @@ window.App = {
 
             for( let p of obj.constructor.properties )
             {
+                if( !p )
+                {
+                    panel.addSeparator();
+                    continue;
+                }
+
                 const widgetName = p.prettyName ?? p.name;
 
                 switch( p.type )
                 {
                     case Number:
-                        panel.addNumber( widgetName, obj[ p.name ], value => obj[ p.name ] = value, { min: p.min, max: p.max, step: p.step, skipSlider: true, disabled: p.disabled, units: p.units } );
+                        panel.addNumber( widgetName, p.getter ? p.getter.call( obj ) : obj[ p.name ], value => {
+                            if( p.setter )
+                            {
+                                p.setter.call( obj, value );
+                            }
+                            else
+                            {
+                                obj[ p.name ] = value;
+                            }
+                        }, { min: p.min, max: p.max, step: p.step, skipSlider: true, disabled: p.disabled, units: p.units } );
                         break;
                     case String:
                         panel.addText( widgetName, obj[ p.name ], value => {
@@ -607,7 +631,15 @@ window.App = {
                     {
                         const value = obj[ p.name ] ?? new WGE.vec3( 0.0, 0.0, 0.0 );
                         panel.addVector3( widgetName, [ value.x, value.y, value.z ], value => {
-                            obj[ p.name ] = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
+                            const vec3 = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
+                            if( p.setter )
+                            {
+                                p.setter.call( obj, vec3 );
+                            }
+                            else
+                            {
+                                obj[ p.name ] = vec3;
+                            }
                         }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
                         break;
                     }
@@ -623,7 +655,6 @@ window.App = {
                     {
                         let transform = obj[ p.name ];
                         console.assert( transform );
-                        window.transform = transform; // For debugging purposes
 
                         // Position
                         {
@@ -659,15 +690,53 @@ window.App = {
                     {
                         const values = Object.values( WGE[ p.enum ].values ).map( v => v.constructor.name.replace( `${ p.enum }_`, "" ) )
                         panel.addSelect( widgetName, values, values[ obj[ p.name ].value ?? obj[ p.name ] ], value => {
-                            obj[ p.name ] = WGE[ p.enum ][ value ].value;
+                            obj[ p.name ] = WGE[ p.enum ][ value ];
                         }, { disabled: p.disabled } );
                         break;
                     }
                     case WGE.Texture:
                     {
-                        panel.addText( widgetName, "", value => {
-                            p.setter.call( obj, value );
-                        }, { disabled: p.disabled } );
+                        const texture = obj[ p.name ];
+                        const textureName = texture.name;
+                        panel.sameLine( 2 );
+                        const texNameWidget = panel.addText( widgetName, textureName ?? "TEXTURE_NAME_ERROR", null, { icon: "Image" } );
+                        texNameWidget.root.style.flex = 1;
+                        panel.addButton( null, "LoadTexture", ( data, file ) => {
+                            const filename = file.name;
+                            Module._writeFile( filename, data );
+                            p.setter.call( obj, filename );
+                            this.inspectPropertiesAndMethods( obj, panel, options );
+                        }, { fileInput: true, fileInputType: "buffer", disabled: p.disabled, icon: "EllipsisVertical" } );
+                        break;
+                    }
+                    case WGE.AABB:
+                    {
+                        const aabb = obj[ p.name ];
+
+                        if( !panel.addAABB )
+                        {
+                            LX.ADD_CUSTOM_WIDGET( "AABB", {
+                                icon: WGE.AABB.icon,
+                                _get_center: function() {
+                                    return [ this.center.x, this.center.y, this.center.z ];
+                                },
+                                _set_center: function( value ) {
+                                    this.center.x = value[ 0 ]; this.center.y = value[ 1 ]; this.center.z = value[ 2 ];
+                                },
+                                _get_halfSize: function() {
+                                    return [ this.halfSize.x, this.halfSize.y, this.halfSize.z ];
+                                },
+                                _set_halfSize: function( value ) {
+                                    this.halfSize.x = value[ 0 ]; this.halfSize.y = value[ 1 ]; this.halfSize.z = value[ 2 ];
+                                },
+                                default: {
+                                    center: new WGE.vec3( 0.0 ),
+                                    halfSize: new WGE.vec3( 0.0 )
+                                }
+                            });
+                        }
+
+                        panel.addAABB( widgetName, aabb );
                         break;
                     }
                     default:
