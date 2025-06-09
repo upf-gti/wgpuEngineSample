@@ -6,11 +6,14 @@ import { wgpuEngine as WGE } from './wgpuengine.module.js';
 
 window.App = {
 
-    dragSupportedExtensions: [ /*'hdr'*/, 'glb', 'ply' ],
+    dragSupportedExtensions: [ 'hdr', 'glb', 'ply' ],
     selectedNode: null,
     renderGrid: true,
-    running: false,
+    shaderData: {},
+
     scripts: {},
+    running: false,
+    scriptEditorState: {}, // TODO
     defaultNodeScript: `// Add Start, Update and Render logic for your node:
 
 this.onStart = function() {
@@ -42,13 +45,13 @@ this.onRender = function() {
         const scene = this.engine.getMainScene();
         this.scene = scene;
 
-        const skybox = new WGE.Environment3D();
+        this.environment = new WGE.Environment3D();
         // It's possible to use "await" here to block the main thread and wait
         // for the texture to be loaded
-        // await skybox.setTexture( "test.hdr" );
-        skybox.setTexture( "test.hdr" );
+        // await this.environment.setTexture( "test.hdr" );
+        this.environment.setTexture( "test.hdr" );
 
-        scene.addNode( skybox, -1 );
+        scene.addNode( this.environment, -1 );
 
         WGE.Engine.onRender = () => {
 
@@ -138,17 +141,18 @@ this.onRender = function() {
             const texture = await WGE.RendererStorage.getTexture( "wall.png" );
             boxMaterial.setDiffuseTexture( texture );
             boxMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", boxMaterial ) );
-
-            // Update with a custom shader
-            WGE.RendererStorage.getShader( "mesh_forward_custom.wgsl", boxMaterial, null, ( shader ) => {
-                boxMaterial.setShader( shader );
-            });
             
             // Method 2: Use callback
             // WGE.RendererStorage.getTexture( "wall.png", 0, (texture) => {
             //     boxMaterial.setDiffuseTexture( texture );
             //     boxMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", boxMaterial ) );
             // });
+
+            // Update with a custom shader
+            WGE.RendererStorage.getShader( "mesh_forward_custom.wgsl", boxMaterial, null, ( shader, shaderContent ) => {
+                boxMaterial.setShader( shader );
+                this.shaderData[ shader.path ] = shaderContent;
+            });
 
             const surface = WGE.RendererStorage.getSurface("box");
             const box = new WGE.MeshInstance3D();
@@ -317,7 +321,7 @@ this.onRender = function() {
         // Add code editor area
         {
             this.codeEditorArea = new LX.Area({ className: "absolute top-0 left-0 z-100" });
-            this.codeEditorArea.root.style.opacity = 0.95;
+            this.codeEditorArea.root.style.opacity = 0.9;
             const closeEditorIcon = LX.makeIcon( "X", { iconClass: "absolute top-0 right-0 mr-2 mt-2 z-10" } );
             closeEditorIcon.listen( "click", this.closeEditor.bind( this ) );
             this.codeEditorArea.attach( closeEditorIcon );
@@ -425,8 +429,6 @@ this.onRender = function() {
         {
             this.projectPanel = new LX.Panel();
             upTabs.add( "Project", this.projectPanel );
-
-
         }
 
         // Editor panels (This will be replaced by each node info)
@@ -436,6 +438,29 @@ this.onRender = function() {
 
             this.objectPanel = new LX.Panel();
             panelTabs.add( "Object", this.objectPanel );
+
+            // Bind necessary signals
+            {
+                // Bind function for renaming nodes
+                LX.addSignal( "@on_name_changed", ( event, { obj, value, oldValue } ) => {
+                    if( !( obj instanceof WGE.Node ) )
+                    {
+                        return;
+                    }
+
+                    // Update scripts
+                    {
+                        const nodeUid = `${ oldValue }_${ obj.sceneUID }`;
+                        const nodeScripts = this.scripts[ nodeUid ] ?? [];
+                        delete this.scripts[ nodeUid ];
+    
+                        const newNodeUid = `${ value }_${ obj.sceneUID }`;
+                        this.scripts[ newNodeUid ] = nodeScripts;
+                    }
+
+                    this.sceneTreePanel.refresh();
+                } )
+            }
 
             this.geometryPanel = new LX.Panel();
             panelTabs.add( "Geometry", this.geometryPanel );
@@ -462,18 +487,27 @@ this.onRender = function() {
             e.preventDefault();
             const file = e.dataTransfer.files[0];
             const ext = LX.getExtension( file.name );
-            switch(ext)
+            if( !this.dragSupportedExtensions.includes( ext ) )
             {
-                case "glb": this.loadScene(this._loadGltf, file); break;
-                case "ply": this.loadScene(this._loadPly, file); break;
+                console.error( `ERROR: Extension ${ ext } not supported.` );
+                return;
+            }
+            switch( ext )
+            {
+                case "glb": this.loadFile(this._loadGltf, file); break;
+                case "ply": this.loadFile(this._loadPly, file); break;
+                case "hdr": this.loadFile(this._loadEnvironment, file); break;
             }
         });
 
         this.stats = new Stats();
         this.stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+        this.stats.dom.style.position = "absolute";
         this.stats.dom.style.top = "";
         this.stats.dom.style.bottom = "0px";
-		document.body.appendChild( this.stats.dom );
+        this.stats.dom.style.left = "";
+        this.stats.dom.style.right = "0px";
+		left.attach( this.stats.dom );
     },
 
     selectNode( node ) {
@@ -498,7 +532,7 @@ this.onRender = function() {
     onAddMesh( geometryType ) {
 
         const mesh = new WGE.MeshInstance3D();
-        mesh.name = "New_Mesh_" + LX.guidGenerator();
+        mesh.name = `${ geometryType }_${ LX.guidGenerator() }`;
 
         // Add a surface
         let surface = null;
@@ -584,13 +618,13 @@ this.onRender = function() {
 
         let hasGeometry = false, hasMaterial = false, hasScript = false;
 
-        this.inspectPropertiesAndMethods( node, this.objectPanel );
+        this.inspectPropertiesAndMethods( node, node, this.objectPanel );
 
         // Has geometry?
         if( node instanceof WGE.MeshInstance3D )
         {
             const surface = node.getSurface( 0 );
-            this.inspectPropertiesAndMethods( surface, this.geometryPanel );
+            this.inspectPropertiesAndMethods( node, surface, this.geometryPanel );
             hasGeometry = true;
         }
         else
@@ -601,7 +635,7 @@ this.onRender = function() {
         const material = this.getNodeMaterial( node );
         if( material )
         {
-            this.inspectPropertiesAndMethods( material, this.materialPanel );
+            this.inspectPropertiesAndMethods( node, material, this.materialPanel );
             hasMaterial = true;
         }
         else
@@ -626,7 +660,7 @@ this.onRender = function() {
         this.nodePanelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", !hasScript );
     },
 
-    inspectPropertiesAndMethods( obj, panel, options = {} ) {
+    inspectPropertiesAndMethods( node, obj, panel, options = {} ) {
 
         panel.clear();
 
@@ -644,31 +678,32 @@ this.onRender = function() {
 
                 const widgetName = p.prettyName ?? p.name;
 
+                const defaultCallback = ( value ) => {
+                    const oldValue = p.getter ? p.getter.call( obj ) : obj[ p.name ];
+                    if( p.setter )
+                    {
+                        p.setter.call( obj, value );
+                    }
+                    else
+                    {
+                        obj[ p.name ] = value;
+                    }
+                    LX.emit( `@on_${ p.name }_changed`, { obj, value, oldValue } );
+                }
+
+                const defaultValue = p.getter ? p.getter.call( obj ) : obj[ p.name ];
+                const icon = p.type.icon;
+
                 switch( p.type )
                 {
                     case Number:
-                        panel.addNumber( widgetName, p.getter ? p.getter.call( obj ) : obj[ p.name ], value => {
-                            if( p.setter )
-                            {
-                                p.setter.call( obj, value );
-                            }
-                            else
-                            {
-                                obj[ p.name ] = value;
-                            }
-                        }, { min: p.min, max: p.max, step: p.step, skipSlider: true, disabled: p.disabled, units: p.units } );
+                        panel.addNumber( widgetName, defaultValue, defaultCallback, { min: p.min, max: p.max, step: p.step, skipSlider: true, disabled: p.disabled, units: p.units } );
                         break;
                     case String:
-                        panel.addText( widgetName, obj[ p.name ], value => {
-                            obj[ p.name ] = value;
-                            if( p.name === "name" )
-                            {
-                                this.sceneTreePanel.refresh();
-                            }
-                        }, { disabled: p.disabled } );
+                        panel.addText( widgetName, defaultValue, defaultCallback, { disabled: p.disabled } );
                         break;
                     case Boolean:
-                        panel.addCheckbox( widgetName, obj[ p.name ], value => obj[ p.name ] = value, { disabled: p.disabled } );
+                        panel.addCheckbox( widgetName, defaultValue, defaultCallback, { disabled: p.disabled } );
                         break;
                     case WGE.vec3:
                     {
@@ -683,6 +718,7 @@ this.onRender = function() {
                             {
                                 obj[ p.name ] = vec3;
                             }
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
                         break;
                     }
@@ -690,7 +726,16 @@ this.onRender = function() {
                     {
                         const value = obj[ p.name ] ?? new WGE.vec4( 0.0, 0.0, 0.0, 1.0 );
                         panel.addVector4( widgetName, [ value.x, value.y, value.z, value.w ], value => {
-                            obj[ p.name ] = new WGE.vec4( value[ 0 ], value[ 1 ], value[ 2 ], value[ 3 ] );
+                            const vec4 = new WGE.vec4( value[ 0 ], value[ 1 ], value[ 2 ], value[ 3 ] );
+                            if( p.setter )
+                            {
+                                p.setter.call( obj, vec4 );
+                            }
+                            else
+                            {
+                                obj[ p.name ] = vec4;
+                            }
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
                         break;
                     }
@@ -706,6 +751,7 @@ this.onRender = function() {
                                 let transform = obj.transform;
                                 transform.position = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
                                 obj.transform = transform;
+                                LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                             }, { min: -10, max: 10, step: 0.1, disabled: p.disabled } );
                         }
                         // Scale
@@ -715,6 +761,7 @@ this.onRender = function() {
                                 let transform = obj.transform;
                                 transform.scale = new WGE.vec3( value[ 0 ], value[ 1 ], value[ 2 ] );
                                 obj.transform = transform;
+                                LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                             }, { min: -10, max: 10, step: 0.1, disabled: p.disabled } );
                         }
                         // Rotation
@@ -724,6 +771,7 @@ this.onRender = function() {
                                 let transform = obj.transform;
                                 transform.rotation = new WGE.quat( value[ 0 ], value[ 1 ], value[ 2 ], value[ 3 ] );
                                 obj.transform = transform;
+                                LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                             }, { min: -1, max: 1, step: 0.1, disabled: p.disabled } );
                         }
                         // transform.delete();
@@ -734,6 +782,7 @@ this.onRender = function() {
                         const values = Object.values( WGE[ p.enum ].values ).map( v => v.constructor.name.replace( `${ p.enum }_`, "" ) )
                         panel.addSelect( widgetName, values, values[ obj[ p.name ].value ?? obj[ p.name ] ], value => {
                             obj[ p.name ] = WGE[ p.enum ][ value ];
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, { disabled: p.disabled } );
                         break;
                     }
@@ -742,24 +791,60 @@ this.onRender = function() {
                         const texture = obj[ p.name ];
                         const textureName = texture.name;
                         panel.sameLine( 2 );
-                        const texNameWidget = panel.addText( widgetName, textureName ?? "TEXTURE_NAME_ERROR", null, { icon: "Image" } );
+                        const texNameWidget = panel.addText( widgetName, textureName ?? "TEXTURE_NAME_ERROR", null, { icon } );
                         texNameWidget.root.style.flex = 1;
                         panel.addButton( null, "LoadTexture", ( data, file ) => {
                             const filename = file.name;
                             Module._writeFile( filename, data );
                             p.setter.call( obj, filename );
-                            this.inspectPropertiesAndMethods( obj, panel, options );
+                            this.inspectPropertiesAndMethods( node, obj, panel, options );
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, { fileInput: true, fileInputType: "buffer", disabled: p.disabled, icon: "EllipsisVertical" } );
+                        break;
+                    }
+                    case WGE.Shader:
+                    {
+                        const shader = defaultValue;
+
+                        if( !panel.addShader )
+                        {
+                            LX.ADD_CUSTOM_WIDGET( "Shader", {
+                                icon,
+                                default: {
+                                    path: ""
+                                },
+                                onCreate: ( panel, instance, node ) => {
+
+                                    if( this.shaderData[ instance.path ] )
+                                    {
+                                        panel.addButton( null, "Edit Shader", ( value ) => {
+                                            this.editShader( shader );
+                                        }, { buttonClass: "accent" } );
+                                    }
+                                    else
+                                    {
+                                        panel.addButton( null, "New Shader", ( value ) => {
+                                            this.createNewShader( node );
+                                        }, { buttonClass: "contrast" } );
+                                    }
+                                }
+                            });
+                        }
+
+                        panel.addShader( widgetName, shader, ( value ) => {
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
+                        }, shader, node );
+
                         break;
                     }
                     case WGE.AABB:
                     {
-                        const aabb = obj[ p.name ];
+                        const aabb = defaultValue;
 
                         if( !panel.addAABB )
                         {
                             LX.ADD_CUSTOM_WIDGET( "AABB", {
-                                icon: WGE.AABB.icon,
+                                icon,
                                 _get_center: function() {
                                     return [ this.center.x, this.center.y, this.center.z ];
                                 },
@@ -779,7 +864,9 @@ this.onRender = function() {
                             });
                         }
 
-                        panel.addAABB( widgetName, aabb );
+                        panel.addAABB( widgetName, aabb, ( value ) => {
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
+                        } );
                         break;
                     }
                     default:
@@ -838,10 +925,11 @@ this.onRender = function() {
         for( let s of scripts )
         {
             panel.sameLine( 3 );
-            const nameWidget = panel.addText( null, s.name, v => {
+            const nameWidget = panel.addText( null, s.name, ( v, e ) => {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
                 const scriptCode = this.codeEditor.getText();
-                // this.codeEditor.closeTab( s.name, true );
-                this.codeEditor.tabs.delete( s.name );
+                this.codeEditor.closeTab( s.name, true );
                 s.name = v;
                 this.codeEditor.loadTab( s.name );
                 this.codeEditor.setText( scriptCode, "JavaScript" );
@@ -851,9 +939,15 @@ this.onRender = function() {
                 this.openScript( s );
             }, { icon: "Edit", xtooltip: true, title: "Edit" } );
             panel.addButton( null, "Remove", () => {
+                const closeEditor = ( this.codeEditor.getSelectedTabName() == s.name );
+                this.codeEditor.closeTab( s.name, true );
                 const idx = scripts.indexOf( s );
                 scripts.splice( idx, 1 );
                 this.inspectNode( node );
+                if( closeEditor )
+                {
+                    this.closeEditor();
+                }
             }, { icon: "Trash2", xtooltip: true, title: "Remove" } );
         }
     },
@@ -868,6 +962,7 @@ this.onRender = function() {
 
     openScript( script ) {
 
+        const scriptName = script.name;
         const node = script.node;
 
         this.openEditor();
@@ -877,7 +972,9 @@ this.onRender = function() {
             this.codeEditor = new LX.CodeEditor( this.codeEditorArea, {
                 skipInfo: true,
                 allowAddScripts: false,
-                name: script.name,
+                highlight: "JavaScript",
+                name: scriptName,
+
                 onsave: ( code ) => {
                     if( this.running )
                     {
@@ -886,11 +983,18 @@ this.onRender = function() {
                 },
                 onrun: ( code ) => {} // Disable default behaviour
             } );
-            this.codeEditor.setText( this.defaultNodeScript, "JavaScript" );
+            this.codeEditor.setText( this.defaultNodeScript );
         }
         else
         {
-            this.codeEditor.loadTab( script.name );
+            const open = this.codeEditor.openedTabs[ scriptName ];
+
+            this.codeEditor.loadTab( scriptName );
+
+            if( !open )
+            {
+                this.codeEditor.setText( this.defaultNodeScript );
+            }
         }
     },
 
@@ -937,7 +1041,76 @@ this.onRender = function() {
         return allowRun;
     },
 
-    loadScene( loader, file, data ) {
+    editShader( shader ) {
+
+        const shaderPath = shader.path;
+        const shaderContent = this.shaderData[ shaderPath ];
+        const shaderName = Module._getFilename( shaderPath );
+
+        this.openEditor();
+
+        if( !this.codeEditor )
+        {
+            this.codeEditor = new LX.CodeEditor( this.codeEditorArea, {
+                skipInfo: true,
+                allowAddScripts: false,
+                highlight: "WGSL",
+                name: shaderName,
+                onsave: ( code ) => {
+                    this.reloadShader( shader, code );
+                },
+                onrun: ( code ) => {} // Disable default behaviour
+            } );
+            this.codeEditor.setText( shaderContent );
+        }
+        // else
+        // {
+        //     const open = this.codeEditor.openedTabs[ shaderName ];
+
+        //     this.codeEditor.loadTab( shaderName );
+
+        //     if( !open )
+        //     {
+        //         this.codeEditor.setText( this.defaultNodeScript );
+        //     }
+        // }
+    },
+
+    reloadShader( shader, code ) {
+
+        console.assert( shader instanceof WGE.Shader );
+
+        // Write text data so we can read the virtual file again
+        code = code.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        Module._writeFile( shader.path, code );
+        
+        // Reload shader and re-read the content
+        WGE.RendererStorage.reloadShader( shader.path );
+        // shader.reload();
+    },
+
+    createNewShader( node ) {
+
+        const shaderFilePath = `Shader_${ LX.guidGenerator() }`;
+        const shaderContent = WGE.DEFAULT_SHADER_CODE.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+        // Generate and set new shader
+        {
+            Module._writeFile( shaderFilePath, shaderContent );
+            const material = this.getNodeMaterial( node, 0 );
+            const customDefineSpecializations = new WGE.VectorString();
+            const shader = Module.RendererStorage._getShader( shaderFilePath, material, customDefineSpecializations );
+            material.setShader( shader );
+        }
+
+        // Store in app shader data and update UI
+        {
+            this.shaderData[ shaderFilePath ] = shaderContent;
+            this.inspectNode( node );
+        }
+    },
+
+    loadFile( loader, file, data ) {
 
         if( !data )
         {
@@ -1005,7 +1178,213 @@ this.onRender = function() {
         this.scene.addNodes( nodes, -1 );
 
         this.sceneTreePanel.refresh();
+    },
+
+    _loadEnvironment( name, buffer ) {
+
+        if( !this.environment )
+        {
+            return;
+        }
+
+        console.assert( this.environment instanceof WGE.Environment3D );
+
+        const hdrFilePath = Module._getFilename( name );
+        console.log( "Loading hdr", [ hdrFilePath, buffer ] );
+
+        Module._writeFile( hdrFilePath, buffer );
+        this.environment._setTexture( hdrFilePath );
+        
+        this.inspectNode( this.environment );
     }
 };
+
+function ADD_CUSTOM_WIDGET( customWidgetName, options = {} )
+{
+    let customIdx = LX.guidGenerator();
+
+    LX.Panel.prototype[ 'add' + customWidgetName ] = function( name, instance, callback ) {
+
+        const userParams = Array.from( arguments ).slice( 3 );
+
+        let widget = new LX.Widget( LX.Widget.CUSTOM, name, null, options );
+        this._attachWidget( widget );
+
+        widget.customName = customWidgetName;
+        widget.customIdx = customIdx;
+
+        widget.onGetValue = () => {
+            return instance;
+        };
+
+        widget.onSetValue = ( newValue, skipCallback, event ) => {
+            instance = newValue;
+            refresh_widget();
+            element.querySelector( ".lexcustomitems" ).toggleAttribute( 'hidden', false );
+            if( !skipCallback )
+            {
+                widget._trigger( new LX.IEvent( name, instance, event ), callback );
+            }
+        };
+
+        widget.onResize = ( rect ) => {
+            const realNameWidth = ( widget.root.domName?.style.width ?? "0px" );
+            container.style.width = `calc( 100% - ${ realNameWidth })`;
+        };
+
+        const element = widget.root;
+        element.style.display = "flex";
+        element.style.flexWrap = "wrap";
+
+        let container, customWidgetsDom;
+        let defaultInstance = options.default ?? {};
+
+        // Add instance button
+
+        const refresh_widget = () => {
+
+            if( container ) container.remove();
+            if( customWidgetsDom ) customWidgetsDom.remove();
+
+            container = document.createElement('div');
+            container.className = "lexcustomcontainer";
+            container.style.width = "100%";
+            element.appendChild( container );
+            element.dataset["opened"] = false;
+
+            const customIcon = LX.makeIcon( options.icon ?? "Box" );
+            const menuIcon = LX.makeIcon( "Menu" );
+
+            let buttonName = customWidgetName + (!instance ? " [empty]" : "");
+            let buttonEl = this.addButton(null, buttonName, (value, event) => {
+                if( instance )
+                {
+                    element.querySelector(".lexcustomitems").toggleAttribute('hidden');
+                    element.dataset["opened"] = !element.querySelector(".lexcustomitems").hasAttribute("hidden");
+                }
+                else
+                {
+                    LX.addContextMenu(null, event, c => {
+                        c.add("New " + customWidgetName, () => {
+                            instance = {};
+                            refresh_widget();
+                            element.querySelector(".lexcustomitems").toggleAttribute('hidden', false);
+                            element.dataset["opened"] = !element.querySelector(".lexcustomitems").hasAttribute("hidden");
+                        });
+                    });
+                }
+
+            }, { className: "p-0", buttonClass: 'custom' });
+
+            const buttonSpan = buttonEl.root.querySelector( "span" );
+            buttonSpan.prepend( customIcon );
+            buttonSpan.appendChild( menuIcon );
+            container.appendChild( buttonEl.root );
+
+            if( instance )
+            {
+                menuIcon.addEventListener( "click", e => {
+                    e.stopImmediatePropagation();
+                    e.stopPropagation();
+                    LX.addContextMenu(null, e, c => {
+                        c.add("Clear", () => {
+                            instance = null;
+                            refresh_widget();
+                        });
+                    });
+                });
+            }
+
+            // Show elements
+
+            customWidgetsDom = document.createElement('div');
+            customWidgetsDom.className = "lexcustomitems";
+            customWidgetsDom.toggleAttribute('hidden', true);
+            element.appendChild( customWidgetsDom );
+
+            if( instance )
+            {
+                this.queue( customWidgetsDom );
+
+                const on_instance_changed = ( key, value, event ) => {
+                    const setter = options[ `_set_${ key }` ];
+                    if( setter )
+                    {
+                        setter.call( instance, value );
+                    }
+                    else
+                    {
+                        instance[ key ] = value;
+                    }
+                    widget._trigger( new LX.IEvent( name, instance, event ), callback );
+                };
+
+                for( let key in defaultInstance )
+                {
+                    let value = null;
+
+                    const getter = options[ `_get_${ key }` ];
+                    if( getter )
+                    {
+                        value = instance[ key ] ? getter.call( instance ) : getter.call( defaultInstance );
+                    }
+                    else
+                    {
+                        value = instance[ key ] ?? defaultInstance[ key ];
+                    }
+
+                    if( !value )
+                    {
+                        continue;
+                    }
+
+                    switch( value.constructor )
+                    {
+                        case String:
+                            if( value[ 0 ] === '#' )
+                            {
+                                this.addColor( key, value, on_instance_changed.bind( this, key ) );
+                            }
+                            else
+                            {
+                                this.addText( key, value, on_instance_changed.bind( this, key ) );
+                            }
+                            break;
+                        case Number:
+                            this.addNumber( key, value, on_instance_changed.bind( this, key ) );
+                            break;
+                        case Boolean:
+                            this.addCheckbox( key, value, on_instance_changed.bind( this, key ) );
+                            break;
+                        case Array:
+                            if( value.length > 4 )
+                            {
+                                this.addArray( key, value, on_instance_changed.bind( this, key ) );
+                            }
+                            else
+                            {
+                                this._addVector( value.length, key, value, on_instance_changed.bind( this, key ) );
+                            }
+                            break;
+                        default:
+                            console.warn( `Unsupported property type: ${ value.constructor.name }` )
+                            break;
+                    }
+                }
+
+                if( options.onCreate )
+                {
+                    options.onCreate.call( this, this, ...userParams );
+                }
+
+                this.clearQueue();
+            }
+        };
+
+        refresh_widget();
+    };
+}
+
+LX.ADD_CUSTOM_WIDGET = ADD_CUSTOM_WIDGET;
 
 window.App.init();

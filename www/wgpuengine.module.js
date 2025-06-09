@@ -37,7 +37,7 @@ wgpuEngine.RendererStorage.getShader = async function( shaderPath, material, cus
         material = material ?? new wgpuEngine.Material();
         customDefineSpecializations = customDefineSpecializations ?? new WGE.VectorString();
         const shader = Module.RendererStorage._getShader( shaderFilePath, material, customDefineSpecializations );
-        if( onLoad ) onLoad( shader );
+        if( onLoad ) onLoad( shader, data );
         return shader;
     }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
@@ -126,15 +126,26 @@ wgpuEngine.Surface.properties = [
     // { name: "material", prettyName: "Material", type: wgpuEngine.Material }
 ];
 
+/* Texture */
+
+wgpuEngine.Texture.icon = "Image";
+wgpuEngine.Texture.properties = [];
+
+/* Shader */
+
+wgpuEngine.Shader.icon = "FileText";
+wgpuEngine.Shader.properties = [];
+
 /* Material */
 
 wgpuEngine.Material.properties = [
+    { name: "type", prettyName: "Type", type: "Enum", enum: "MaterialType" },
+    { name: "shader", prettyName: "Shader", type: wgpuEngine.Shader, getter: function(){ return this.getShader(); } },
     { name: "color", prettyName: "Color", type: wgpuEngine.vec4, min: 0, max: 1, step: 0.01 },
+    { name: "emissive", prettyName: "Emissive", type: wgpuEngine.vec3 },
     { name: "roughness", prettyName: "Roughness", type: Number, min: 0, max: 1, step: 0.01 },
     { name: "metallic", prettyName: "Metallic", type: Number, min: 0, max: 1, step: 0.01 },
     { name: "occlusion", prettyName: "Occlusion", type: Number, min: 0, max: 1, step: 0.01 },
-    { name: "emissive", prettyName: "Emissive", type: wgpuEngine.vec3 },
-    { name: "type", prettyName: "Type", type: "Enum", enum: "MaterialType" },
     { name: "priority", prettyName: "Priority", type: Number },
     { name: "cullType", prettyName: "Cull Type", type: "Enum", enum: "CullType" },
     { name: "topologyType", prettyName: "Topology Type", type: "Enum", enum: "TopologyType" },
@@ -225,6 +236,48 @@ wgpuEngine.AnimationPlayer.methods = [
     { name: "pause", prettyName: "Pause Animation" },
     { name: "stop", prettyName: "Stop Animation" },
 ];
+
+wgpuEngine.DEFAULT_SHADER_CODE = `#include mesh_includes.wgsl
+#include math.wgsl
+
+@group(0) @binding(0) var<storage, read> mesh_data : InstanceData;
+
+#dynamic @group(1) @binding(0) var<uniform> camera_data : CameraData;
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+
+    var position = vec4f(in.position, 1.0);
+    var normals = vec4f(in.normal, 0.0);
+
+    let instance_data : RenderMeshData = mesh_data.data[in.instance_id];
+
+    var out: VertexOutput;
+    var world_position = instance_data.model * position;
+    out.world_position = world_position.xyz;
+    out.position = camera_data.view_projection * world_position;
+    out.uv = in.uv; // forward to the fragment shader
+    out.color = vec4f(in.color, 1.0);
+
+    out.normal = normalize(adjoint(instance_data.model) * normals.xyz);
+
+    return out;
+}
+
+struct FragmentOutput {
+    @location(0) color: vec4f
+}
+
+@fragment
+fn fs_main(in: VertexOutput, @builtin(front_facing) is_front_facing: bool) -> FragmentOutput {
+
+    var out: FragmentOutput;
+    var dummy = camera_data.eye;
+
+    out.color = vec4f(1.0, 0.0,0.0, 1.0);
+
+    return out;
+}`;
 
 // Utility functions
 

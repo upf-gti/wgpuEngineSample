@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\alexr\AppData\Local\Temp\tmprguamla5.js
+// include: C:\Users\alexr\AppData\Local\Temp\tmp1woha09y.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -221,7 +221,7 @@ Module['FS_createPath']("/data/textures", "environments", true, true);
 
   })();
 
-// end include: C:\Users\alexr\AppData\Local\Temp\tmprguamla5.js
+// end include: C:\Users\alexr\AppData\Local\Temp\tmp1woha09y.js
 
 
 var arguments_ = [];
@@ -9195,7 +9195,8 @@ async function createWasm() {
         // This logic comes directly from the sdl implementation. We cannot
         // call preventDefault on all keydown events otherwise onKeyPress will
         // not get called
-        if (event.key == 'Backspace' || event.key == 'Tab') {
+        if (event.target.tagName !== "INPUT" && event.target.tagName !== "TEXTAREA" &&
+          (event.key == 'Backspace' || event.key == 'Tab')) {
           event.preventDefault();
         }
       },
