@@ -162,6 +162,7 @@ wgpuEngine.Material.properties = [
 
 wgpuEngine.Node.icon = "CircleSmall";
 wgpuEngine.Node.properties = [
+    { name: "sceneUID", prettyName: "Scene UID", type: String, disabled: true },
     { name: "name", prettyName: "Name", type: String },
 ];
 

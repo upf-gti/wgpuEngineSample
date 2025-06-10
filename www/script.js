@@ -6,6 +6,9 @@ import { wgpuEngine as WGE } from './wgpuengine.module.js';
 
 window.App = {
 
+    SHADER: 0,
+    NODE_SCRIPT: 1,
+
     dragSupportedExtensions: [ 'hdr', 'glb', 'ply' ],
     selectedNode: null,
     renderGrid: true,
@@ -230,7 +233,7 @@ this.onRender = function() {
             },
             {
                 name: "Edit", submenu: [
-                    { name: "Delete", icon: "Trash2" }
+                    { name: "Delete", icon: "Trash2", callback: this.onDeleteNode.bind( this ) }
                 ]
             },
             {
@@ -392,13 +395,10 @@ this.onRender = function() {
                     onevent: (event) => {    
                         switch (event.type) {
                             case LX.TreeEvent.NODE_SELECTED:
-                                this.selectNode( event.node.node );
+                                this.selectNode( event.node );
                                 break;
                             // case LX.TreeEvent.NODE_DELETED:
-                            //     if (event.multiple)
-                            //         console.log("Deleted: ", event.node);
-                            //     else
-                            //         console.log(event.node.id + " deleted");
+                            //     this.deleteNode( event.node.node );
                             //     break;
                             // case LX.TreeEvent.NODE_DBLCLICKED:
                             //     console.log(event.node.id + " dbl clicked");
@@ -510,9 +510,14 @@ this.onRender = function() {
 		left.attach( this.stats.dom );
     },
 
-    selectNode( node ) {
+    selectNode( data ) {
         
-        this.selectedNode = node;
+        if( data.constructor === Array )
+        {
+            return;
+        }
+
+        this.selectedNode = data.node;
 
         if( this.selectedNode )
         {
@@ -520,13 +525,39 @@ this.onRender = function() {
         }
         else
         {
-            console.warn( `Node ${ node.name } not found!` );
+            console.warn( `Node ${ data.name } not found!` );
         }
 
     },
 
     onNewScene() {
         LX.prompt("Are you sure you want to create a new scene? This will discard the current scene.", "New Scene", (ok) => {}, { input: false });
+    },
+
+    onDeleteNode() {
+
+        if( !this.selectedNode )
+        {
+            return;
+        }
+
+        this.deleteNode( this.selectedNode );
+    },
+
+    deleteNode( node ) {
+
+        const nodeParent = node.parent;
+
+        if( nodeParent )
+        {
+            nodeParent.removeChild( node );
+        }
+        else
+        {
+            this.scene.removeNode( node );
+        }
+
+        this.sceneTreePanel.refresh();
     },
 
     onAddMesh( geometryType ) {
@@ -813,9 +844,9 @@ this.onRender = function() {
                                 default: {
                                     path: ""
                                 },
-                                onCreate: ( panel, instance, node ) => {
+                                onCreate: ( panel, shader, node ) => {
 
-                                    if( this.shaderData[ instance.path ] )
+                                    if( this.shaderData[ shader.path ] )
                                     {
                                         panel.addButton( null, "Edit Shader", ( value ) => {
                                             this.editShader( shader );
@@ -974,13 +1005,7 @@ this.onRender = function() {
                 allowAddScripts: false,
                 highlight: "JavaScript",
                 name: scriptName,
-
-                onsave: ( code ) => {
-                    if( this.running )
-                    {
-                        this.runScene( true );
-                    }
-                },
+                onsave: this._onCodeEditorSave.bind( this ),
                 onrun: ( code ) => {} // Disable default behaviour
             } );
             this.codeEditor.setText( this.defaultNodeScript );
@@ -996,6 +1021,9 @@ this.onRender = function() {
                 this.codeEditor.setText( this.defaultNodeScript );
             }
         }
+
+        const tab = this.codeEditor.openedTabs[ scriptName ];
+        tab.type = App.NODE_SCRIPT;
     },
 
     attachScriptToNode( node, scriptCode ) {
@@ -1056,29 +1084,33 @@ this.onRender = function() {
                 allowAddScripts: false,
                 highlight: "WGSL",
                 name: shaderName,
-                onsave: ( code ) => {
-                    this.reloadShader( shader, code );
-                },
+                onsave: this._onCodeEditorSave.bind( this ),
                 onrun: ( code ) => {} // Disable default behaviour
             } );
             this.codeEditor.setText( shaderContent );
         }
-        // else
-        // {
-        //     const open = this.codeEditor.openedTabs[ shaderName ];
+        else
+        {
+            const open = this.codeEditor.openedTabs[ shaderName ];
 
-        //     this.codeEditor.loadTab( shaderName );
+            this.codeEditor.loadTab( shaderName );
 
-        //     if( !open )
-        //     {
-        //         this.codeEditor.setText( this.defaultNodeScript );
-        //     }
-        // }
+            if( !open )
+            {
+                this.codeEditor.setText( shaderContent );
+            }
+        }
+
+        const tab = this.codeEditor.openedTabs[ shaderName ];
+        tab.shaderRef = shader;
+        tab.type = App.SHADER;
     },
 
-    reloadShader( shader, code ) {
+    reloadShader( code ) {
 
-        console.assert( shader instanceof WGE.Shader );
+        const currentTab = this.codeEditor.getSelectedTabName();
+        const shader = this.codeEditor.openedTabs[ currentTab ].shaderRef;
+        console.assert( shader && shader instanceof WGE.Shader );
 
         // Write text data so we can read the virtual file again
         code = code.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -1086,12 +1118,11 @@ this.onRender = function() {
         
         // Reload shader and re-read the content
         WGE.RendererStorage.reloadShader( shader.path );
-        // shader.reload();
     },
 
     createNewShader( node ) {
 
-        const shaderFilePath = `Shader_${ LX.guidGenerator() }`;
+        const shaderFilePath = `Shader_${ LX.guidGenerator() }.wgsl`;
         const shaderContent = WGE.DEFAULT_SHADER_CODE.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
         // Generate and set new shader
@@ -1150,6 +1181,24 @@ this.onRender = function() {
         return material ?? surface.material;
     },
    
+    _onCodeEditorSave( code ) {
+
+        const currentTab = this.codeEditor.getSelectedTabName();
+        const codeType = this.codeEditor.openedTabs[ currentTab ].type;
+
+        if( codeType == App.NODE_SCRIPT )
+        {
+            if( this.running )
+            {
+                this.runScene( true );
+            }
+        }
+        else if( codeType == App.SHADER )
+        {
+            this.reloadShader( code );
+        }
+    },
+
     _loadGltf( name, buffer ) {
 
         const gltfFilePath = Module._getFilename( name );
@@ -1198,193 +1247,5 @@ this.onRender = function() {
         this.inspectNode( this.environment );
     }
 };
-
-function ADD_CUSTOM_WIDGET( customWidgetName, options = {} )
-{
-    let customIdx = LX.guidGenerator();
-
-    LX.Panel.prototype[ 'add' + customWidgetName ] = function( name, instance, callback ) {
-
-        const userParams = Array.from( arguments ).slice( 3 );
-
-        let widget = new LX.Widget( LX.Widget.CUSTOM, name, null, options );
-        this._attachWidget( widget );
-
-        widget.customName = customWidgetName;
-        widget.customIdx = customIdx;
-
-        widget.onGetValue = () => {
-            return instance;
-        };
-
-        widget.onSetValue = ( newValue, skipCallback, event ) => {
-            instance = newValue;
-            refresh_widget();
-            element.querySelector( ".lexcustomitems" ).toggleAttribute( 'hidden', false );
-            if( !skipCallback )
-            {
-                widget._trigger( new LX.IEvent( name, instance, event ), callback );
-            }
-        };
-
-        widget.onResize = ( rect ) => {
-            const realNameWidth = ( widget.root.domName?.style.width ?? "0px" );
-            container.style.width = `calc( 100% - ${ realNameWidth })`;
-        };
-
-        const element = widget.root;
-        element.style.display = "flex";
-        element.style.flexWrap = "wrap";
-
-        let container, customWidgetsDom;
-        let defaultInstance = options.default ?? {};
-
-        // Add instance button
-
-        const refresh_widget = () => {
-
-            if( container ) container.remove();
-            if( customWidgetsDom ) customWidgetsDom.remove();
-
-            container = document.createElement('div');
-            container.className = "lexcustomcontainer";
-            container.style.width = "100%";
-            element.appendChild( container );
-            element.dataset["opened"] = false;
-
-            const customIcon = LX.makeIcon( options.icon ?? "Box" );
-            const menuIcon = LX.makeIcon( "Menu" );
-
-            let buttonName = customWidgetName + (!instance ? " [empty]" : "");
-            let buttonEl = this.addButton(null, buttonName, (value, event) => {
-                if( instance )
-                {
-                    element.querySelector(".lexcustomitems").toggleAttribute('hidden');
-                    element.dataset["opened"] = !element.querySelector(".lexcustomitems").hasAttribute("hidden");
-                }
-                else
-                {
-                    LX.addContextMenu(null, event, c => {
-                        c.add("New " + customWidgetName, () => {
-                            instance = {};
-                            refresh_widget();
-                            element.querySelector(".lexcustomitems").toggleAttribute('hidden', false);
-                            element.dataset["opened"] = !element.querySelector(".lexcustomitems").hasAttribute("hidden");
-                        });
-                    });
-                }
-
-            }, { className: "p-0", buttonClass: 'custom' });
-
-            const buttonSpan = buttonEl.root.querySelector( "span" );
-            buttonSpan.prepend( customIcon );
-            buttonSpan.appendChild( menuIcon );
-            container.appendChild( buttonEl.root );
-
-            if( instance )
-            {
-                menuIcon.addEventListener( "click", e => {
-                    e.stopImmediatePropagation();
-                    e.stopPropagation();
-                    LX.addContextMenu(null, e, c => {
-                        c.add("Clear", () => {
-                            instance = null;
-                            refresh_widget();
-                        });
-                    });
-                });
-            }
-
-            // Show elements
-
-            customWidgetsDom = document.createElement('div');
-            customWidgetsDom.className = "lexcustomitems";
-            customWidgetsDom.toggleAttribute('hidden', true);
-            element.appendChild( customWidgetsDom );
-
-            if( instance )
-            {
-                this.queue( customWidgetsDom );
-
-                const on_instance_changed = ( key, value, event ) => {
-                    const setter = options[ `_set_${ key }` ];
-                    if( setter )
-                    {
-                        setter.call( instance, value );
-                    }
-                    else
-                    {
-                        instance[ key ] = value;
-                    }
-                    widget._trigger( new LX.IEvent( name, instance, event ), callback );
-                };
-
-                for( let key in defaultInstance )
-                {
-                    let value = null;
-
-                    const getter = options[ `_get_${ key }` ];
-                    if( getter )
-                    {
-                        value = instance[ key ] ? getter.call( instance ) : getter.call( defaultInstance );
-                    }
-                    else
-                    {
-                        value = instance[ key ] ?? defaultInstance[ key ];
-                    }
-
-                    if( !value )
-                    {
-                        continue;
-                    }
-
-                    switch( value.constructor )
-                    {
-                        case String:
-                            if( value[ 0 ] === '#' )
-                            {
-                                this.addColor( key, value, on_instance_changed.bind( this, key ) );
-                            }
-                            else
-                            {
-                                this.addText( key, value, on_instance_changed.bind( this, key ) );
-                            }
-                            break;
-                        case Number:
-                            this.addNumber( key, value, on_instance_changed.bind( this, key ) );
-                            break;
-                        case Boolean:
-                            this.addCheckbox( key, value, on_instance_changed.bind( this, key ) );
-                            break;
-                        case Array:
-                            if( value.length > 4 )
-                            {
-                                this.addArray( key, value, on_instance_changed.bind( this, key ) );
-                            }
-                            else
-                            {
-                                this._addVector( value.length, key, value, on_instance_changed.bind( this, key ) );
-                            }
-                            break;
-                        default:
-                            console.warn( `Unsupported property type: ${ value.constructor.name }` )
-                            break;
-                    }
-                }
-
-                if( options.onCreate )
-                {
-                    options.onCreate.call( this, this, ...userParams );
-                }
-
-                this.clearQueue();
-            }
-        };
-
-        refresh_widget();
-    };
-}
-
-LX.ADD_CUSTOM_WIDGET = ADD_CUSTOM_WIDGET;
 
 window.App.init();
