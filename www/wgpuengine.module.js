@@ -17,7 +17,16 @@ for( const key in Module )
     wgpuEngine[  key ] = Module[ key ];
 }
 
-// Custom wrappers for some classes
+/*
+   ____          _                   __        __
+  / ___|   _ ___| |_ ___  _ __ ___   \ \      / / __ __ _ _ __  _ __   ___ _ __ ___
+ | |  | | | / __| __/ _ \| '_ ` _ \   \ \ /\ / / '__/ _` | '_ \| '_ \ / _ \ '__/ __|
+ | |__| |_| \__ \ || (_) | | | | | |   \ V  V /| | | (_| | |_) | |_) |  __/ |  \__ \
+  \____\__,_|___/\__\___/|_| |_| |_|    \_/\_/ |_|  \__,_| .__/| .__/ \___|_|  |___/
+                                                         |_|   |_|
+
+* Add custom wrapper functions to adapt C++ features to JavaScript
+*/
 
 wgpuEngine.RendererStorage.getTexture = async function( texturePath, textureFlags, onLoad ) {
     const textureFilePath = Module._getFilename( texturePath );
@@ -86,7 +95,37 @@ wgpuEngine.parseObj = async function( objPath, createAABB, onLoad ) {
     }).catch(( err ) => console.error( `${ Module._getCurrentFunctionName() }: ${ err }` ) );
 }
 
-// Expose data for creating user interfaces
+/*
+   ____          _                    ____                            _   _
+  / ___|   _ ___| |_ ___  _ __ ___   |  _ \ _ __ ___  _ __   ___ _ __| |_(_) ___  ___
+ | |  | | | / __| __/ _ \| '_ ` _ \  | |_) | '__/ _ \| '_ \ / _ \ '__| __| |/ _ \/ __|
+ | |__| |_| \__ \ || (_) | | | | | | |  __/| | | (_) | |_) |  __/ |  | |_| |  __/\__ \
+  \____\__,_|___/\__\___/|_| |_| |_| |_|   |_|  \___/| .__/ \___|_|   \__|_|\___||___/
+                                                     |_|
+
+* Define properties that couldn't be binded from C++ due to limitations of Embind
+*/
+
+Object.defineProperty( wgpuEngine.Mesh.prototype, "skeleton", {
+    get: function() { return this._getSkeleton(); },
+    set: function( value ) { this._setSkeleton( value ); }
+});
+
+Object.defineProperty( wgpuEngine.MeshInstance3D.prototype, "mesh", {
+    get: function() { return this._getMesh(); },
+    set: function( value ) { this._setMesh( value ); }
+});
+
+/*
+  ____        _          _____                      _
+ |  _ \  __ _| |_ __ _  | ____|_  ___ __   ___  ___(_)_ __   __ _
+ | | | |/ _` | __/ _` | |  _| \ \/ / '_ \ / _ \/ __| | '_ \ / _` |
+ | |_| | (_| | || (_| | | |___ >  <| |_) | (_) \__ \ | | | | (_| |
+ |____/ \__,_|\__\__,_| |_____/_/\_\ .__/ \___/|___/_|_| |_|\__, |
+                                   |_|                      |___/
+
+* Expose data for creating user interfaces
+*/
 
 /* Camera */
 
@@ -105,6 +144,60 @@ wgpuEngine.Camera.properties = [
 
 wgpuEngine.FlyoverCamera.icon = "Camera";
 wgpuEngine.FlyoverCamera.properties = wgpuEngine.Camera.properties.concat( [] );
+
+/* Meshes */
+
+wgpuEngine.Mesh.properties = [];
+
+wgpuEngine.QuadMesh.icon = "Square";
+wgpuEngine.QuadMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "width", prettyName: "Width", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "subdivisions", prettyName: "Subdivisions", type: Number, min: 0, max: 64, step: 1 },
+    { name: "centered", prettyName: "Centered", type: Boolean },
+    { name: "flipY", prettyName: "Flip Y", type: Boolean }
+] );
+
+wgpuEngine.BoxMesh.icon = "Box";
+wgpuEngine.BoxMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "width", prettyName: "Width", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "depth", prettyName: "Depth", type: Number, min: 0.01, max: 4, step: 0.01 },
+] );
+
+wgpuEngine.SphereMesh.icon = "Circle";
+wgpuEngine.SphereMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "radius", prettyName: "Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "rings", prettyName: "Rings", type: Number, min: 1, max: 64, step: 1 },
+    { name: "ringSegments", prettyName: "Ring Segments", type: Number, min: 4, max: 64, step: 1 }
+] );
+
+wgpuEngine.CapsuleMesh.icon = "Pill";
+wgpuEngine.CapsuleMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "radius", prettyName: "Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "rings", prettyName: "Rings", type: Number, min: 3, max: 64, step: 1 },
+    { name: "ringSegments", prettyName: "Ring Segments", type: Number, min: 3, max: 64, step: 1 }
+] );
+
+wgpuEngine.CylinderMesh.icon = "Cylinder";
+wgpuEngine.CylinderMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "topRadius", prettyName: "Top Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "bottomRadius", prettyName: "Bottom Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "rings", prettyName: "Rings", type: Number, min: 3, max: 64, step: 1 },
+    { name: "ringSegments", prettyName: "Ring Segments", type: Number, min: 3, max: 64, step: 1 },
+    { name: "capTop", prettyName: "Cap Top", type: Boolean },
+    { name: "capBottom", prettyName: "Cap Bottom", type: Boolean },
+] );
+
+wgpuEngine.TorusMesh.icon = "Torus";
+wgpuEngine.TorusMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    { name: "ringRadius", prettyName: "Ring Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "tubeRadius", prettyName: "Tube Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
+    { name: "rings", prettyName: "Rings", type: Number, min: 3, max: 64, step: 1 },
+    { name: "ringSegments", prettyName: "Ring Segments", type: Number, min: 3, max: 64, step: 1 },
+] );
 
 /* AABB */
 
@@ -275,7 +368,7 @@ fn fs_main(in: VertexOutput, @builtin(front_facing) is_front_facing: bool) -> Fr
     var out: FragmentOutput;
     var dummy = camera_data.eye;
 
-    out.color = vec4f(1.0, 0.0,0.0, 1.0);
+    out.color = vec4f(1.0, 0.0, 0.0, 1.0);
 
     return out;
 }`;

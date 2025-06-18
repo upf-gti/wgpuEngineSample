@@ -122,15 +122,14 @@ this.onRender = function() {
             gridMaterial.type = WGE.MaterialType.MATERIAL_UNLIT;
             gridMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_grid", gridMaterial ) );
 
-            const surface = WGE.RendererStorage.getSurface( "quad" );
             const grid = new WGE.MeshInstance3D();
             grid.name = "Grid";
-            grid.addSurface( surface );
+            grid.mesh = new WGE.QuadMesh();
             grid.setPosition( new WGE.vec3(0.0) );
             grid.rotate( WGE.radians( 90.0 ), new WGE.vec3(1.0, 0.0, 0.0) );
             grid.scale( new WGE.vec3(10.0) );
             grid.setFrustumCullingEnabled( false );
-            grid.setSurfaceMaterialOverride( surface, gridMaterial );
+            grid.setSurfaceMaterialOverride( grid.getSurface( 0 ), gridMaterial );
             this.grid = grid;
         }
 
@@ -157,12 +156,11 @@ this.onRender = function() {
                 this.shaderData[ shader.path ] = shaderContent;
             });
 
-            const surface = WGE.RendererStorage.getSurface("box");
             const box = new WGE.MeshInstance3D();
             box.name = "Box";
-            box.addSurface( surface );
+            box.mesh = new WGE.BoxMesh();
             box.setPosition( new WGE.vec3(1.0, 0, -5.0) );
-            box.setSurfaceMaterialOverride( surface, boxMaterial );
+            box.setSurfaceMaterialOverride( box.getSurface( 0 ), boxMaterial );
             scene.addNode( box, -1 );
             window.box = box;
         }
@@ -241,6 +239,8 @@ this.onRender = function() {
                     { name: "Mesh", submenu: [
                         { name: "Box", callback: this.onAddMesh.bind( this ) },
                         { name: "Sphere", callback: this.onAddMesh.bind( this ) },
+                        { name: "Capsule", callback: this.onAddMesh.bind( this ) },
+                        { name: "Cylinder", callback: this.onAddMesh.bind( this ) },
                         { name: "Torus", callback: this.onAddMesh.bind( this ) }
                     ] },
                     { name: "Light", submenu: [
@@ -397,9 +397,9 @@ this.onRender = function() {
                             case LX.TreeEvent.NODE_SELECTED:
                                 this.selectNode( event.node );
                                 break;
-                            // case LX.TreeEvent.NODE_DELETED:
-                            //     this.deleteNode( event.node.node );
-                            //     break;
+                            case LX.TreeEvent.NODE_DELETED:
+                                this.deleteNode( event.node.node );
+                                break;
                             // case LX.TreeEvent.NODE_DBLCLICKED:
                             //     console.log(event.node.id + " dbl clicked");
                             //     break;
@@ -562,36 +562,24 @@ this.onRender = function() {
 
     onAddMesh( geometryType ) {
 
-        const mesh = new WGE.MeshInstance3D();
-        mesh.name = `${ geometryType }_${ LX.guidGenerator() }`;
+        const meshInstance = new WGE.MeshInstance3D();
 
-        // Add a surface
-        let surface = null;
-        
-        if( geometryType === "Sphere" )
-        {
-            surface = WGE.RendererStorage.getSurface("sphere");
-        }
-        else if( geometryType === "Torus" )
-        {
-            surface = WGE.RendererStorage.getSurface("torus");
-        }
-        else if( geometryType === "Box" )
-        {
-            surface = WGE.RendererStorage.getSurface("box");
-        }
-        else
+        // Create a mesh instance
+        const geometryClass = WGE[ `${ geometryType }Mesh` ];
+
+        if( !geometryClass )
         {
             throw new Error( `Unknown geometry type: ${ geometryType }` );
         }
 
-        mesh.addSurface( surface );
+        meshInstance.name = `${ geometryType }_${ LX.guidGenerator() }`;
+        meshInstance.mesh = new geometryClass();
 
         // Add a material
         const material = new WGE.Material();
         material.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", material ) );
-        mesh.setSurfaceMaterialOverride( surface, material );
-        this.scene.addNode( mesh, -1 );
+        meshInstance.setSurfaceMaterialOverride( meshInstance.getSurface( 0 ), material );
+        this.scene.addNode( meshInstance, -1 );
 
         this.sceneTreePanel.refresh();
     },
@@ -654,8 +642,21 @@ this.onRender = function() {
         // Has geometry?
         if( node instanceof WGE.MeshInstance3D )
         {
-            const surface = node.getSurface( 0 );
-            this.inspectPropertiesAndMethods( node, surface, this.geometryPanel );
+            this.inspectPropertiesAndMethods( node, node.mesh, this.geometryPanel, true, { propertiesTitle: node.mesh.type, propertiesIcon: WGE[ node.mesh.type ]?.icon } );
+
+            const surfaces = node.mesh.surfaces;
+
+            if( surfaces.size() > 0 )
+            {
+                this.geometryPanel.addSeparator();
+            }
+
+            for( let i = 0; i < surfaces.size(); i++ )
+            {
+                const surface = surfaces.get( i );
+                this.inspectPropertiesAndMethods( node, surface, this.geometryPanel, false, { propertiesTitle: `${ surface.name } (Surface)` } );
+            }
+
             hasGeometry = true;
         }
         else
@@ -691,13 +692,17 @@ this.onRender = function() {
         this.nodePanelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", !hasScript );
     },
 
-    inspectPropertiesAndMethods( node, obj, panel, options = {} ) {
+    inspectPropertiesAndMethods( node, obj, panel, clearPanel, options = {} ) {
 
-        panel.clear();
+        if( clearPanel ?? true )
+        {
+            panel.clear();
+        }
+
 
         if( obj.constructor.properties?.length )
         {
-            panel.branch( "Properties" );
+            panel.branch( options.propertiesTitle ?? "Properties", { icon: options.propertiesIcon } );
 
             for( let p of obj.constructor.properties )
             {
@@ -828,7 +833,7 @@ this.onRender = function() {
                             const filename = file.name;
                             Module._writeFile( filename, data );
                             p.setter.call( obj, filename );
-                            this.inspectPropertiesAndMethods( node, obj, panel, options );
+                            this.inspectPropertiesAndMethods( node, obj, panel, clearPanel, options );
                             LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, { fileInput: true, fileInputType: "buffer", disabled: p.disabled, icon: "EllipsisVertical" } );
                         break;

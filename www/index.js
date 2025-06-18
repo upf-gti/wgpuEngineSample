@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\alexr\AppData\Local\Temp\tmpnmfrgbwu.js
+// include: C:\Users\alexr\AppData\Local\Temp\tmpyqskrwfr.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -221,7 +221,7 @@ Module['FS_createPath']("/data/textures", "environments", true, true);
 
   })();
 
-// end include: C:\Users\alexr\AppData\Local\Temp\tmpnmfrgbwu.js
+// end include: C:\Users\alexr\AppData\Local\Temp\tmpyqskrwfr.js
 
 
 var arguments_ = [];
@@ -11940,15 +11940,23 @@ var dynCall_vifiii = Module['dynCall_vifiii'] = (a0, a1, a2, a3, a4, a5) => (dyn
 var dynCall_viifiii = Module['dynCall_viifiii'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_viifiii = Module['dynCall_viifiii'] = wasmExports['dynCall_viifiii'])(a0, a1, a2, a3, a4, a5, a6);
 var dynCall_viffii = Module['dynCall_viffii'] = (a0, a1, a2, a3, a4, a5) => (dynCall_viffii = Module['dynCall_viffii'] = wasmExports['dynCall_viffii'])(a0, a1, a2, a3, a4, a5);
 var dynCall_viiffii = Module['dynCall_viiffii'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_viiffii = Module['dynCall_viiffii'] = wasmExports['dynCall_viiffii'])(a0, a1, a2, a3, a4, a5, a6);
+var dynCall_vifffiiiii = Module['dynCall_vifffiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => (dynCall_vifffiiiii = Module['dynCall_vifffiiiii'] = wasmExports['dynCall_vifffiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+var dynCall_viifffiiiii = Module['dynCall_viifffiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) => (dynCall_viifffiiiii = Module['dynCall_viifffiiiii'] = wasmExports['dynCall_viifffiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
 var dynCall_vifi = Module['dynCall_vifi'] = (a0, a1, a2, a3) => (dynCall_vifi = Module['dynCall_vifi'] = wasmExports['dynCall_vifi'])(a0, a1, a2, a3);
 var dynCall_viifi = Module['dynCall_viifi'] = (a0, a1, a2, a3, a4) => (dynCall_viifi = Module['dynCall_viifi'] = wasmExports['dynCall_viifi'])(a0, a1, a2, a3, a4);
+var dynCall_iiffiiii = Module['dynCall_iiffiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7) => (dynCall_iiffiiii = Module['dynCall_iiffiiii'] = wasmExports['dynCall_iiffiiii'])(a0, a1, a2, a3, a4, a5, a6, a7);
+var dynCall_iifffi = Module['dynCall_iifffi'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iifffi = Module['dynCall_iifffi'] = wasmExports['dynCall_iifffi'])(a0, a1, a2, a3, a4, a5);
+var dynCall_iifiii = Module['dynCall_iifiii'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iifiii = Module['dynCall_iifiii'] = wasmExports['dynCall_iifiii'])(a0, a1, a2, a3, a4, a5);
+var dynCall_iiffiii = Module['dynCall_iiffiii'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_iiffiii = Module['dynCall_iiffiii'] = wasmExports['dynCall_iiffiii'])(a0, a1, a2, a3, a4, a5, a6);
+var dynCall_iifffiiiii = Module['dynCall_iifffiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => (dynCall_iifffiiiii = Module['dynCall_iifffiiiii'] = wasmExports['dynCall_iifffiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+var dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8) => (dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = wasmExports['dynCall_iiiiiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+var dynCall_iiffii = Module['dynCall_iiffii'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iiffii = Module['dynCall_iiffii'] = wasmExports['dynCall_iiffii'])(a0, a1, a2, a3, a4, a5);
 var dynCall_viifff = Module['dynCall_viifff'] = (a0, a1, a2, a3, a4, a5) => (dynCall_viifff = Module['dynCall_viifff'] = wasmExports['dynCall_viifff'])(a0, a1, a2, a3, a4, a5);
 var dynCall_viiifff = Module['dynCall_viiifff'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_viiifff = Module['dynCall_viiifff'] = wasmExports['dynCall_viiifff'])(a0, a1, a2, a3, a4, a5, a6);
 var dynCall_viji = Module['dynCall_viji'] = (a0, a1, a2, a3) => (dynCall_viji = Module['dynCall_viji'] = wasmExports['dynCall_viji'])(a0, a1, a2, a3);
 var dynCall_jiji = Module['dynCall_jiji'] = (a0, a1, a2, a3) => (dynCall_jiji = Module['dynCall_jiji'] = wasmExports['dynCall_jiji'])(a0, a1, a2, a3);
 var dynCall_iidiiii = Module['dynCall_iidiiii'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_iidiiii = Module['dynCall_iidiiii'] = wasmExports['dynCall_iidiiii'])(a0, a1, a2, a3, a4, a5, a6);
 var dynCall_viijii = Module['dynCall_viijii'] = (a0, a1, a2, a3, a4, a5) => (dynCall_viijii = Module['dynCall_viijii'] = wasmExports['dynCall_viijii'])(a0, a1, a2, a3, a4, a5);
-var dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8) => (dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = wasmExports['dynCall_iiiiiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8);
 var dynCall_iiiiij = Module['dynCall_iiiiij'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iiiiij = Module['dynCall_iiiiij'] = wasmExports['dynCall_iiiiij'])(a0, a1, a2, a3, a4, a5);
 var dynCall_iiiiid = Module['dynCall_iiiiid'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iiiiid = Module['dynCall_iiiiid'] = wasmExports['dynCall_iiiiid'])(a0, a1, a2, a3, a4, a5);
 var dynCall_iiiiijj = Module['dynCall_iiiiijj'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_iiiiijj = Module['dynCall_iiiiijj'] = wasmExports['dynCall_iiiiijj'])(a0, a1, a2, a3, a4, a5, a6);
