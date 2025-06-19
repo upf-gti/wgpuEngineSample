@@ -7,6 +7,7 @@
 
 #include "graphics/sample_renderer.h"
 #include "graphics/renderer_storage.h"
+#include "graphics/primitives/quad_mesh.h"
 
 #include "engine/scene.h"
 
@@ -46,7 +47,7 @@ int SampleEngine::post_initialize()
     {
         MeshInstance3D* grid = new MeshInstance3D();
         grid->set_name("Grid");
-        grid->add_surface(RendererStorage::get_surface("quad"));
+        grid->set_mesh(new QuadMesh());
         grid->set_position(glm::vec3(0.0f));
         grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         grid->scale(glm::vec3(10.f));

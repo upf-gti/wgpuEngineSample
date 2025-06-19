@@ -127,6 +127,19 @@ Object.defineProperty( wgpuEngine.MeshInstance3D.prototype, "mesh", {
 * Expose data for creating user interfaces
 */
 
+/* Resources */
+
+wgpuEngine.Resource.icon = "File";
+wgpuEngine.Resource.properties = [
+    { name: "name", prettyName: "Name", type: String, disabled: true }
+];
+
+wgpuEngine.Skeleton.icon = "Bone";
+wgpuEngine.Skeleton.properties = wgpuEngine.Resource.properties.concat( [
+    null,
+    { name: "jointsCount", prettyName: "Joints Count", type: Number, disabled: true }
+] );
+
 /* Camera */
 
 wgpuEngine.Camera.icon = "Camera";
@@ -145,12 +158,30 @@ wgpuEngine.Camera.properties = [
 wgpuEngine.FlyoverCamera.icon = "Camera";
 wgpuEngine.FlyoverCamera.properties = wgpuEngine.Camera.properties.concat( [] );
 
+/* Surface */
+
+wgpuEngine.Surface.properties = [
+    { name: "vertexCount", prettyName: "Vertex Count", type: Number, disabled: true },
+    { name: "verticesByteSize", prettyName: "Vertices Byte Size", type: Number, disabled: true },
+    { name: "indexCount", prettyName: "Index Count", type: Number, disabled: true },
+    { name: "indicesByteSize", prettyName: "Indices Byte Size", type: Number, disabled: true },
+    { name: "interleavedDataByteSize", prettyName: "Interleaved Data Byte Size", type: Number, disabled: true },
+    { name: "aabb", prettyName: "AABB", type: wgpuEngine.AABB },
+    // { name: "material", prettyName: "Material", type: wgpuEngine.Material }
+];
+
 /* Meshes */
 
-wgpuEngine.Mesh.properties = [];
+wgpuEngine.Mesh.properties = wgpuEngine.Resource.properties.concat( [
+    null,
+    { name: "frustumCullingEnabled", prettyName: "Frustum Culling", type: Boolean },
+    { name: "receiveShadows", prettyName: "Receive Shadows", type: Boolean },
+    { name: "skeleton", prettyName: "Skeleton", type: wgpuEngine.Skeleton },
+]);
 
 wgpuEngine.QuadMesh.icon = "Square";
 wgpuEngine.QuadMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "width", prettyName: "Width", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "subdivisions", prettyName: "Subdivisions", type: Number, min: 0, max: 64, step: 1 },
@@ -160,6 +191,7 @@ wgpuEngine.QuadMesh.properties = wgpuEngine.Mesh.properties.concat( [
 
 wgpuEngine.BoxMesh.icon = "Box";
 wgpuEngine.BoxMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "width", prettyName: "Width", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "depth", prettyName: "Depth", type: Number, min: 0.01, max: 4, step: 0.01 },
@@ -167,6 +199,7 @@ wgpuEngine.BoxMesh.properties = wgpuEngine.Mesh.properties.concat( [
 
 wgpuEngine.SphereMesh.icon = "Circle";
 wgpuEngine.SphereMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "radius", prettyName: "Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "rings", prettyName: "Rings", type: Number, min: 1, max: 64, step: 1 },
     { name: "ringSegments", prettyName: "Ring Segments", type: Number, min: 4, max: 64, step: 1 }
@@ -174,6 +207,7 @@ wgpuEngine.SphereMesh.properties = wgpuEngine.Mesh.properties.concat( [
 
 wgpuEngine.CapsuleMesh.icon = "Pill";
 wgpuEngine.CapsuleMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "radius", prettyName: "Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "rings", prettyName: "Rings", type: Number, min: 3, max: 64, step: 1 },
@@ -182,6 +216,7 @@ wgpuEngine.CapsuleMesh.properties = wgpuEngine.Mesh.properties.concat( [
 
 wgpuEngine.CylinderMesh.icon = "Cylinder";
 wgpuEngine.CylinderMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "topRadius", prettyName: "Top Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "bottomRadius", prettyName: "Bottom Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "height", prettyName: "Height", type: Number, min: 0.01, max: 4, step: 0.01 },
@@ -193,6 +228,7 @@ wgpuEngine.CylinderMesh.properties = wgpuEngine.Mesh.properties.concat( [
 
 wgpuEngine.TorusMesh.icon = "Torus";
 wgpuEngine.TorusMesh.properties = wgpuEngine.Mesh.properties.concat( [
+    null,
     { name: "ringRadius", prettyName: "Ring Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "tubeRadius", prettyName: "Tube Radius", type: Number, min: 0.01, max: 4, step: 0.01 },
     { name: "rings", prettyName: "Rings", type: Number, min: 3, max: 64, step: 1 },
@@ -205,18 +241,6 @@ wgpuEngine.AABB.icon = "Box";
 wgpuEngine.AABB.properties = [
     { name: "center", prettyName: "Center", type: Number, disabled: true },
     { name: "halfSize", prettyName: "Half Size", type: Number, disabled: true }
-];
-
-/* Surface */
-
-wgpuEngine.Surface.properties = [
-    { name: "vertexCount", prettyName: "Vertex Count", type: Number, disabled: true },
-    { name: "verticesByteSize", prettyName: "Vertices Byte Size", type: Number, disabled: true },
-    { name: "indexCount", prettyName: "Index Count", type: Number, disabled: true },
-    { name: "indicesByteSize", prettyName: "Indices Byte Size", type: Number, disabled: true },
-    { name: "interleavedDataByteSize", prettyName: "Interleaved Data Byte Size", type: Number, disabled: true },
-    { name: "aabb", prettyName: "AABB", type: wgpuEngine.AABB },
-    // { name: "material", prettyName: "Material", type: wgpuEngine.Material }
 ];
 
 /* Texture */
@@ -316,12 +340,23 @@ wgpuEngine.Environment3D.properties = wgpuEngine.MeshInstance3D.properties.conca
     { name: "texture", prettyName: "Texture", type: wgpuEngine.Texture, setter: function( value ) { this._setTexture( value ); } },
 ] );
 
+/* Text3D */
+
+wgpuEngine.Text3D.icon = "Type";
+wgpuEngine.Text3D.properties = wgpuEngine.MeshInstance3D.properties.concat( [
+    null,
+    { name: "text", prettyName: "Text", type: String },
+    { name: "fontScale", prettyName: "Font Scale", type: Number, min: 0.01, max: 10, step: 0.01 },
+    { name: "wrap", prettyName: "Wrap", type: Boolean },
+    { name: "boxSize", prettyName: "Box Size", type: wgpuEngine.vec2, min: 0.0, max: 10, step: 0.01 },
+] );
+
 /* AnimationPlayer */
 
 wgpuEngine.AnimationPlayer.icon = "Play";
 wgpuEngine.AnimationPlayer.properties = wgpuEngine.Node3D.properties.concat( [
     null,
-    { name: "blendTime", prettyName: "Blend Time", type: Number },
+    { name: "blendTime", prettyName: "Blend Time", type: Number, units: "s" },
     { name: "speed", prettyName: "Speed", type: Number },
     { name: "loopType", prettyName: "Loop Type", type: "Enum", enum: "LoopType" },
 ] );

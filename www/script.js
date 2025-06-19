@@ -187,14 +187,6 @@ this.onRender = function() {
             const meshInstance3D = WGE.parseObj( "torus.obj", true, ( meshInstance3D ) => {
                 scene.addNode( meshInstance3D, -1 );
                 window.torus = meshInstance3D; // Store the torus mesh instance globally for debugging
-
-                // const torusMaterial = meshInstance3D.getSurfaceMaterial();
-                // // torusMaterial.cullType = WGE.CullType.CULL_NONE;
-                // torusMaterial.color = new WGE.vec4(1, 0, 1, 1);
-                // torusMaterial.setShader( WGE.RendererStorage.getShaderFromName( "mesh_forward", torusMaterial ) );
-
-                // const torusSurface = meshInstance3D.getSurface( 0 );
-                // meshInstance3D.setSurfaceMaterialOverride( torusSurface, torusMaterial );
             });
         }
 
@@ -241,7 +233,8 @@ this.onRender = function() {
                         { name: "Sphere", callback: this.onAddMesh.bind( this ) },
                         { name: "Capsule", callback: this.onAddMesh.bind( this ) },
                         { name: "Cylinder", callback: this.onAddMesh.bind( this ) },
-                        { name: "Torus", callback: this.onAddMesh.bind( this ) }
+                        { name: "Torus", callback: this.onAddMesh.bind( this ) },
+                        { name: "Text", callback: this.onAddMesh.bind( this ) },
                     ] },
                     { name: "Light", submenu: [
                         { name: "Directional", callback: this.onAddLight.bind( this ) },
@@ -298,19 +291,20 @@ this.onRender = function() {
                 {
                     name: "Translate",
                     icon: "Move",
-                    callback: (value, event) => console.log(value),
-                    selectable: true
+                    callback: this.onGizmoMode.bind( this ),
+                    selectable: true,
+                    selected: true,
                 },
                 {
                     name: "Rotate",
                     icon: "RotateRight",
-                    callback: (value, event) => console.log(value),
+                    callback: this.onGizmoMode.bind( this ),
                     selectable: true
                 },
                 {
                     name: "Scale",
                     icon: "Scale3d",
-                    callback: (value, event) => console.log(value),
+                    callback: this.onGizmoMode.bind( this ),
                     selectable: true
                 }
             ],
@@ -531,7 +525,46 @@ this.onRender = function() {
     },
 
     onNewScene() {
-        LX.prompt("Are you sure you want to create a new scene? This will discard the current scene.", "New Scene", (ok) => {}, { input: false });
+        LX.prompt("Are you sure you want to create a new scene? This will discard the current scene.", "New Scene", () => {
+
+            this.scene.deleteAll();
+
+            // Add new environment
+            {
+                this.environment = new WGE.Environment3D();
+                this.environment.setTexture( "test.hdr" );
+                this.scene.addNode( this.environment, -1 );
+            }
+
+            this.sceneTreePanel.refresh();
+            this.selectedNode = null;
+
+            this.objectPanel.clear();
+            this.geometryPanel.clear();
+            this.materialPanel.clear();
+            this.scriptPanel.clear();
+
+            this.nodePanelTabs.tabDOMs[ "Object" ].classList.toggle( "hidden", true );
+            this.nodePanelTabs.tabDOMs[ "Geometry" ].classList.toggle( "hidden", true );
+            this.nodePanelTabs.tabDOMs[ "Material" ].classList.toggle( "hidden", true );
+            this.nodePanelTabs.tabDOMs[ "Script" ].classList.toggle( "hidden", true );
+
+        }, { input: false });
+    },
+
+    onGizmoMode( mode ) {
+        switch( mode )
+        {
+            case "Translate":
+                this.gizmo.operation = WGE.GizmoOp.TRANSLATE;
+                break;
+            case "Rotate":
+                this.gizmo.operation = WGE.GizmoOp.ROTATE;
+                break;
+            case "Scale":
+                this.gizmo.operation = WGE.GizmoOp.SCALE;
+                break;
+        }
     },
 
     onDeleteNode() {
@@ -563,6 +596,12 @@ this.onRender = function() {
     onAddMesh( geometryType ) {
 
         const meshInstance = new WGE.MeshInstance3D();
+
+        if( geometryType === "Text" )
+        {
+            this.addTextMesh();
+            return;
+        }
 
         // Create a mesh instance
         const geometryClass = WGE[ `${ geometryType }Mesh` ];
@@ -622,6 +661,17 @@ this.onRender = function() {
         }
     },
 
+    addTextMesh( ) {
+
+        const textInstance = new WGE.Text3D("Empty Text");
+        textInstance.name = `${ textInstance.mesh.type }_${ LX.guidGenerator() }`;
+        textInstance.generateMesh();
+
+        this.scene.addNode( textInstance, -1 );
+
+        this.sceneTreePanel.refresh();
+    },
+
     addLight() {
         const light = new WGE.DirectionalLight3D();
         light.setPosition( new WGE.vec3(0.0, 5.0, 0.0) );
@@ -645,11 +695,6 @@ this.onRender = function() {
             this.inspectPropertiesAndMethods( node, node.mesh, this.geometryPanel, true, { propertiesTitle: node.mesh.type, propertiesIcon: WGE[ node.mesh.type ]?.icon } );
 
             const surfaces = node.mesh.surfaces;
-
-            if( surfaces.size() > 0 )
-            {
-                this.geometryPanel.addSeparator();
-            }
 
             for( let i = 0; i < surfaces.size(); i++ )
             {
@@ -702,7 +747,10 @@ this.onRender = function() {
 
         if( obj.constructor.properties?.length )
         {
-            panel.branch( options.propertiesTitle ?? "Properties", { icon: options.propertiesIcon } );
+            if( options.branch ?? true )
+            {
+                panel.branch( options.propertiesTitle ?? "Properties", { icon: options.propertiesIcon } );
+            }
 
             for( let p of obj.constructor.properties )
             {
@@ -741,6 +789,23 @@ this.onRender = function() {
                     case Boolean:
                         panel.addCheckbox( widgetName, defaultValue, defaultCallback, { disabled: p.disabled } );
                         break;
+                    case WGE.vec2:
+                    {
+                        const value = obj[ p.name ] ?? new WGE.vec2( 0.0, 0.0 );
+                        panel.addVector2( widgetName, [ value.x, value.y ], value => {
+                            const vec2 = new WGE.vec2( value[ 0 ], value[ 1 ] );
+                            if( p.setter )
+                            {
+                                p.setter.call( obj, vec2 );
+                            }
+                            else
+                            {
+                                obj[ p.name ] = vec2;
+                            }
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
+                        }, { min: p.min, max: p.max, step: p.step, disabled: p.disabled } );
+                        break;
+                    }
                     case WGE.vec3:
                     {
                         const value = obj[ p.name ] ?? new WGE.vec3( 0.0, 0.0, 0.0 );
@@ -870,6 +935,32 @@ this.onRender = function() {
                         panel.addShader( widgetName, shader, ( value ) => {
                             LX.emit( `@on_${ p.name }_changed`, { obj, value } );
                         }, shader, node );
+
+                        break;
+                    }
+                    case WGE.Skeleton:
+                    {
+                        const skeleton = defaultValue;
+
+                        if( !panel.addSkeleton )
+                        {
+                            LX.ADD_CUSTOM_WIDGET( "Skeleton", {
+                                icon,
+                                default: {},
+                                onCreate: ( panel, skeleton, node ) => {
+                                    if( !skeleton )
+                                    {
+                                        skeleton = node.skeleton = new WGE.Skeleton();
+                                    }
+
+                                    this.inspectPropertiesAndMethods( node, skeleton, panel, false, { branch: false } );
+                                }
+                            });
+                        }
+
+                        panel.addSkeleton( widgetName, skeleton, ( value ) => {
+                            LX.emit( `@on_${ p.name }_changed`, { obj, value } );
+                        }, skeleton, node );
 
                         break;
                     }

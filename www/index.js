@@ -31,7 +31,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\alexr\AppData\Local\Temp\tmpyqskrwfr.js
+// include: C:\Users\alexr\AppData\Local\Temp\tmp856z7ti0.js
 
   Module['expectedDataFileDownloads'] ??= 0;
   Module['expectedDataFileDownloads']++;
@@ -221,7 +221,7 @@ Module['FS_createPath']("/data/textures", "environments", true, true);
 
   })();
 
-// end include: C:\Users\alexr\AppData\Local\Temp\tmpyqskrwfr.js
+// end include: C:\Users\alexr\AppData\Local\Temp\tmp856z7ti0.js
 
 
 var arguments_ = [];
@@ -6078,10 +6078,63 @@ async function createWasm() {
     };
 
   
+  
+  var emval_returnValue = (returnType, destructorsRef, handle) => {
+      var destructors = [];
+      var result = returnType['toWireType'](destructors, handle);
+      if (destructors.length) {
+        // void, primitives and any other types w/o destructors don't need to allocate a handle
+        HEAPU32[((destructorsRef)>>2)] = Emval.toHandle(destructors);
+      }
+      return result;
+    };
+  var __emval_as = (handle, returnType, destructorsRef) => {
+      handle = Emval.toValue(handle);
+      returnType = requireRegisteredType(returnType, 'emval::as');
+      return emval_returnValue(returnType, destructorsRef, handle);
+    };
+
+
+  var emval_symbols = {
+  };
+  
+  var getStringOrSymbol = (address) => {
+      var symbol = emval_symbols[address];
+      if (symbol === undefined) {
+        return readLatin1String(address);
+      }
+      return symbol;
+    };
+  
+  var __emval_get_module_property = (name) => {
+      name = getStringOrSymbol(name);
+      return Emval.toHandle(Module[name]);
+    };
+
+  var __emval_instanceof = (object, constructor) => {
+      object = Emval.toValue(object);
+      constructor = Emval.toValue(constructor);
+      return object instanceof constructor;
+    };
+
+  
+  
+  var __emval_run_destructors = (handle) => {
+      var destructors = Emval.toValue(handle);
+      runDestructors(destructors);
+      __emval_decref(handle);
+    };
+
+  
   var __emval_take_value = (type, arg) => {
       type = requireRegisteredType(type, '_emval_take_value');
       var v = type['readValueFromPointer'](arg);
       return Emval.toHandle(v);
+    };
+
+  var __emval_typeof = (handle) => {
+      handle = Emval.toValue(handle);
+      return Emval.toHandle(typeof handle);
     };
 
   var INT53_MAX = 9007199254740992;
@@ -11594,7 +11647,19 @@ var wasmImports = {
   /** @export */
   _embind_register_void: __embind_register_void,
   /** @export */
+  _emval_as: __emval_as,
+  /** @export */
+  _emval_decref: __emval_decref,
+  /** @export */
+  _emval_get_module_property: __emval_get_module_property,
+  /** @export */
+  _emval_instanceof: __emval_instanceof,
+  /** @export */
+  _emval_run_destructors: __emval_run_destructors,
+  /** @export */
   _emval_take_value: __emval_take_value,
+  /** @export */
+  _emval_typeof: __emval_typeof,
   /** @export */
   _gmtime_js: __gmtime_js,
   /** @export */
@@ -11951,6 +12016,7 @@ var dynCall_iiffiii = Module['dynCall_iiffiii'] = (a0, a1, a2, a3, a4, a5, a6) =
 var dynCall_iifffiiiii = Module['dynCall_iifffiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) => (dynCall_iifffiiiii = Module['dynCall_iifffiiiii'] = wasmExports['dynCall_iifffiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9);
 var dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = (a0, a1, a2, a3, a4, a5, a6, a7, a8) => (dynCall_iiiiiiiii = Module['dynCall_iiiiiiiii'] = wasmExports['dynCall_iiiiiiiii'])(a0, a1, a2, a3, a4, a5, a6, a7, a8);
 var dynCall_iiffii = Module['dynCall_iiffii'] = (a0, a1, a2, a3, a4, a5) => (dynCall_iiffii = Module['dynCall_iiffii'] = wasmExports['dynCall_iiffii'])(a0, a1, a2, a3, a4, a5);
+var dynCall_viiifii = Module['dynCall_viiifii'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_viiifii = Module['dynCall_viiifii'] = wasmExports['dynCall_viiifii'])(a0, a1, a2, a3, a4, a5, a6);
 var dynCall_viifff = Module['dynCall_viifff'] = (a0, a1, a2, a3, a4, a5) => (dynCall_viifff = Module['dynCall_viifff'] = wasmExports['dynCall_viifff'])(a0, a1, a2, a3, a4, a5);
 var dynCall_viiifff = Module['dynCall_viiifff'] = (a0, a1, a2, a3, a4, a5, a6) => (dynCall_viiifff = Module['dynCall_viiifff'] = wasmExports['dynCall_viiifff'])(a0, a1, a2, a3, a4, a5, a6);
 var dynCall_viji = Module['dynCall_viji'] = (a0, a1, a2, a3) => (dynCall_viji = Module['dynCall_viji'] = wasmExports['dynCall_viji'])(a0, a1, a2, a3);
