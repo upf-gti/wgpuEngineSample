@@ -1,6 +1,6 @@
 
 import { LX } from 'lexgui';
-import 'lexgui/components/codeeditor.js';
+import 'lexgui/extensions/codeeditor.js';
 
 import { wgpuEngine as WGE } from './wgpuengine.module.js';
 
