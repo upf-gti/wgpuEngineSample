@@ -5,11 +5,7 @@ set(SAMPLE_PROJECT_DIR_ROOT        ${CMAKE_CURRENT_SOURCE_DIR})
 set(SAMPLE_PROJECT_DIR_SOURCES     "${SAMPLE_PROJECT_DIR_ROOT}/src")
 set(SAMPLE_PROJECT_DIR_LIBS        "${SAMPLE_PROJECT_DIR_ROOT}/libraries")
 
-if (EMSCRIPTEN)
-    project(index LANGUAGES C CXX)
-else()
-    project(sample_project LANGUAGES C CXX)
-endif()
+project(sample_project LANGUAGES C CXX)
 
 # Enable multicore and simd compile on VS solution
 if(MSVC)
@@ -69,6 +65,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${SAMPLE_PROJECT_DIR_SOURCES})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
+if (EMSCRIPTEN)
+    set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
+endif()
+
 # OS Dependant project setup
 if(APPLE)
     set_target_properties(${PROJECT_NAME} PROPERTIES 
@@ -87,5 +87,5 @@ endif()
 
 # wgpuEngine
 add_subdirectory(libraries/wgpuEngine)
-target_link_libraries(${PROJECT_NAME} PUBLIC webgpuEngine)
+target_link_libraries(${PROJECT_NAME} PUBLIC wgpuEngine)
 
