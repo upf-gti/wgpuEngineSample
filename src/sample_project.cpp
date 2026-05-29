@@ -39,10 +39,9 @@ void engine_post_initialize()
     {
         MeshInstance3D* grid = new MeshInstance3D();
         grid->set_name("Grid");
-        grid->set_mesh(new QuadMesh());
+        grid->set_mesh(new QuadMesh(1000.0f, 1000.0f, false, true, 100));
         grid->set_position(glm::vec3(0.0f));
         grid->rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        grid->scale(glm::vec3(10.f));
         grid->set_frustum_culling_enabled(false);
 
         // NOTE: first set the transparency and all types BEFORE loading the shader
