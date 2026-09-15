@@ -1,10 +1,11 @@
-#include "engine/engine.h"
-#include "engine/scene.h"
+#include  "config_structs.h"
 
-#include "graphics/renderer.h"
+#include "core/managers/simulation/simulation_manager.h"
+#include "core/managers/xr/xr_manager.h"
 
-#include "framework/nodes/mesh_instance_3d.h"
-#include "framework/nodes/environment_3d.h"
+#include "scene/main/scene.h"
+#include "scene/3d/mesh_instance_3d.h"
+#include "scene/3d/environment_3d.h"
 
 #include "framework/parsers/parse_gltf.h"
 
@@ -14,8 +15,7 @@
 
 void engine_post_initialize()
 {
-    Engine* engine = Engine::get_instance();
-    Scene* main_scene = engine->get_main_scene();
+    Scene* main_scene = SimulationManager::get_singleton()->get_main_scene();
 
     // Create skybox
     {
@@ -24,7 +24,7 @@ void engine_post_initialize()
     }
 
     // Load Meta Quest Controllers and Controller pointer
-    if (engine->get_renderer()->get_xr_available())
+    if (XRManager::get_singleton()->is_xr_available())
     {
         std::vector<Node*> entities_left;
         std::vector<Node*> entities_right;
@@ -58,10 +58,10 @@ void engine_post_initialize()
 
 void engine_render()
 {
-    Engine::get_instance()->render_default_gui();
+    //Engine::get_instance()->render_default_gui();
 }
 
-void get_engine_config(sEngineConfiguration& out_config)
+void get_engine_config(sEngineConfig& out_config)
 {
     out_config.window_width = 1280;
     out_config.window_height = 720;
